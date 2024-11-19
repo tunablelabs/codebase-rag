@@ -1,0 +1,7 @@
+.env
+__pycache__
+*.cpython.*
+build/
+repos/
+rag.egg-info/
+env/
