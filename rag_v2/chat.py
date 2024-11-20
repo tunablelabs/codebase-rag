@@ -13,14 +13,14 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.schema import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-import rag_v2.config as sage_config
+import rag_v2.config as rag_config
 from rag_v2.llm import build_llm_via_langchain
 from rag_v2.retriever import build_retriever_from_args
 
 load_dotenv()
 
 
-def build_sage_chain(args):
+def build_rag_chain(args):
     """Builds a rag chain via LangChain."""
     llm = build_llm_via_langchain(args.llm_provider, args.llm_model)
     retriever = build_retriever_from_args(args)
@@ -58,8 +58,8 @@ def build_sage_chain(args):
     )
 
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-    sage_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
-    return sage_chain
+    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+    return rag_chain
 
 
 def main():
@@ -72,11 +72,11 @@ def main():
         help="Whether to make the gradio app publicly accessible.",
     )
 
-    validator = sage_config.add_all_args(parser)
+    validator = rag_config.add_all_args(parser)
     args = parser.parse_args()
     validator(args)
 
-    sage_chain = build_sage_chain(args)
+    rag_chain = build_rag_chain(args)
 
     def source_md(file_path: str, url: str) -> str:
         """Formats a context source in Markdown."""
@@ -92,7 +92,7 @@ def main():
 
         query_rewrite = ""
         response = ""
-        async for event in sage_chain.astream_events(
+        async for event in rag_chain.astream_events(
             {
                 "input": message,
                 "chat_history": history_langchain_format,
