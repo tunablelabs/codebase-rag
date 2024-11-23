@@ -1,0 +1,92 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+
+export default function Chat() {
+  const [githubUrl, setGithubUrl] = useState("");
+  const [question, setQuestion] = useState("");
+  const [response, setResponse] = useState("");
+  const [isPending, setIsPending] = useState(false);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    setIsPending(true);
+    setResponse("");
+
+    try {
+      const res = await fetch("/api/setup-query-engine", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          githubUrl,
+          question,
+        }),
+      });
+
+      if (!res.ok) {
+        // Ensure proper error handling
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Something went wrong");
+      }
+
+      const data = await res.json();
+      setResponse(data.response || "No response received");
+    } catch (error: any) {
+      setResponse(error.message || "Error occurred while fetching data.");
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  return (
+    <>
+      {/* Added aria-live for better accessibility */}
+      <div
+        className="flex h-0 grow flex-col-reverse overflow-y-scroll"
+        aria-live="polite"
+      >
+        <div className="space-y-4 py-8">
+          {response && (
+            <div className="mx-auto flex max-w-3xl whitespace-pre-wrap">
+              <div className="rounded bg-gray-100 p-4">{response}</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mb-8 flex justify-center gap-2">
+        <form
+          onSubmit={handleSubmit}
+          className="flex w-full max-w-3xl flex-col space-y-4"
+        >
+          <fieldset className="flex flex-col space-y-2">
+            <input
+              placeholder="GitHub Repository URL"
+              required
+              value={githubUrl}
+              onChange={(e) => setGithubUrl(e.target.value)}
+              className="block w-full rounded border border-gray-300 p-2 outline-black"
+            />
+            <textarea
+              placeholder="Enter your question about the code"
+              required
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              className="block w-full rounded border border-gray-300 p-2 outline-black"
+            />
+          </fieldset>
+          <button
+            className="rounded bg-black px-3 py-1 font-medium text-white outline-offset-[3px] outline-black disabled:opacity-50"
+            type="submit"
+            disabled={isPending}
+          >
+            {isPending ? "Processing..." : "Submit"}
+          </button>
+        </form>
+      </div>
+    </>
+  );
+}

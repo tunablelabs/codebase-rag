@@ -1,14 +1,13 @@
+import sys
+import json
 import os
 import ast
 import json
-import gc
 import re
-import uuid
-import textwrap
 import subprocess
+import sys
 import nest_asyncio
 from dotenv import load_dotenv
-from IPython.display import Markdown, display
 from llama_index.core import (
     VectorStoreIndex,
     SimpleDirectoryReader,
@@ -44,7 +43,6 @@ def get_embedding_model():
     return embed_model
 
 
-# Utility functions
 def parse_github_url(url):
     """Parse GitHub URL to extract owner and repository name."""
     pattern = r"https://github\.com/([^/]+)/([^/]+)"
@@ -132,7 +130,7 @@ def setup_query_engine(github_url):
             text_qa_template=qa_prompt_tmpl,
             similarity_top_k=4
         )
-        print("Query engine setup complete. Ready to answer questions!")
+        # print("Query engine setup complete. Ready to answer questions!")
         return query_engine, repo_ast
 
     except Exception as e:
@@ -140,15 +138,25 @@ def setup_query_engine(github_url):
         return None, None
 
 
-# Main execution
-github_url = "https://github.com/codingwithsurya/chat-with-your-code-with-rag"
-query_engine, repo_ast = setup_query_engine(github_url)
+# Ensure all output is JSON
+def output_json(data):
+    print(json.dumps(data))
 
-if query_engine:
-    question = "What does the function in rag.py do?"
-    query = (
-        f"Given the repository AST:\n{json.dumps(repo_ast, indent=2)}\n\n"
-        f"{question} Considering the file structure, explain in detail."
-    )
-    response = query_engine.query(query)
-    print(response)
+if __name__ == "__main__":
+    try:
+        github_url = sys.argv[1]
+        question = sys.argv[2]
+
+        query_engine, repo_ast = setup_query_engine(github_url)
+
+        if query_engine:
+            query = (
+                f"Given the repository AST:\n{json.dumps(repo_ast, indent=2)}\n\n"
+                f"{question} Considering the file structure, explain in detail."
+            )
+            response = query_engine.query(query)
+            output_json({"response": response.response})
+        else:
+            output_json({"error": "Failed to set up query engine"})
+    except Exception as e:
+        output_json({"error": str(e)})

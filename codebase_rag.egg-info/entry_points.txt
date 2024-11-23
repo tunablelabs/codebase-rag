@@ -1,0 +1,3 @@
+[console_scripts]
+rag-chat = rag.chat:main
+rag-index = rag.index:main
