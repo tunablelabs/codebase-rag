@@ -59,6 +59,6 @@ def query_with_context(query, limit):
     return (contexts, res.choices[0].text)
 
 
-question = "how to enable API key based authentication?"
+question = "what is quantization?"
 context, rag_response = query_with_context(question, 3)
 print(rag_response)
