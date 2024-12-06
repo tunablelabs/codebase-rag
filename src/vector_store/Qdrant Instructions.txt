@@ -1,0 +1,7 @@
+pip install -r requirements.txt
+
+###########################################################
+
+Now, 
+run the embeddings.py to ingest the embeddings. Once the embeddings are created,
+run the query_handler.py to retrieve the relevant docs/chunks
