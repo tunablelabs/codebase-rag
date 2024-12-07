@@ -1,0 +1,58 @@
+📁 /
+├── 📁 config/
+│   ├── 📄 api_config.yaml
+│   ├── 📄 chunking_rules.yaml
+│   ├── 📄 tree_sitter_config.yaml
+│   └── 📄 vector_db_config.yaml
+├── 📁 docs/
+│   ├── 📁 architecture/
+│   │   ├── 📄 parsing_flow.md
+│   │   └── 📄 vector_store.md
+│   ├── 📄 API.md
+│   ├── 📄 README.md
+│   └── 📄 SETUP.md
+├── 📁 install_scripts/
+│   └── 📄 __init__.py
+├── 📁 src/
+│   ├── 📁 api/
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 middleware.py
+│   │   └── 📄 routes.py
+│   ├── 📁 code_chunking/
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 chunk_processor.py
+│   │   └── 📄 chunker.py
+│   ├── 📁 git_parser/
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 language_detector.py
+│   │   └── 📄 repo_parser.py
+│   ├── 📁 tree_sitter_handlers/
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 java_parser.py
+│   │   ├── 📄 javascript_parser.py
+│   │   ├── 📄 parser_factory.py
+│   │   └── 📄 python_parser.py
+│   ├── 📁 utils/
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 file_utils.py
+│   │   └── 📄 text_processors.py
+│   ├── 📁 vector_store/
+│   │   ├── 📄 __init__.py
+│   │   ├── 📄 config.py
+│   │   ├── 📄 embeddings.py
+│   │   ├── 📄 main.py
+│   │   ├── 📄 Qdrant Instructions.txt
+│   │   ├── 📄 query_handler.py
+│   │   ├── 📄 requirements.txt
+│   │   ├── 📄 test.py
+│   │   └── 📄 vector_db.py
+│   └── 📄 __init__.py
+├── 📁 tests/
+│   └── 📄 __init__.py
+├── 📁 tree_sitter_libs/
+│   └── 📄 __init__.py
+├── 📄 docker-compose.yml
+├── 📄 README.md
+├── 📄 requirements.txt
+├── 📄 setup.py
+└── 📄 tree_generator.py

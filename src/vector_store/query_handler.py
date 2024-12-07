@@ -1,5 +1,5 @@
 from qdrant_client import QdrantClient
-from config import OPENAI_API_KEY, QDRANT_URL, QDRANT_API_KEY, POC_COLLECTION_NAME
+from src.vector_store.config import OPENAI_API_KEY, QDRANT_URL, QDRANT_API_KEY, POC_COLLECTION_NAME
 
 from openai import OpenAI
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
