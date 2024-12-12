@@ -1,0 +1,33 @@
+# config/tree_sitter_config.yaml
+
+# General parse settings applied to all languages
+general_parse_settings:
+  extract_imports: true
+  extract_classes: true
+  extract_functions: true
+  extract_variables: true
+  extract_comments: true
+  extract_annotations: true
+  extract_interfaces: true
+  extract_constants: true
+  extract_modules: true
+
+# Language-specific parse settings
+parsers:
+  python:
+    library_path: "tree_sitter_libs/tree-sitter-python/python.so"
+    supported_extensions: [".py"]
+    specific_settings:
+      extract_decorators: true
+      extract_async_functions: true
+      extract_generators: true
+      extract_type_hints: true
+      extract_comprehensions: true
+      
+parsing:
+  max_file_size: 1048576
+  ignore_patterns: [".git/", "__pycache__/", "node_modules/", "build/", "dist/"]
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

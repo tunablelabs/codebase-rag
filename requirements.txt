@@ -1,0 +1,6 @@
+fastapi==0.115.5
+uvicorn==0.32.1
+python-multipart==0.0.6
+tree-sitter==0.20.1
+transformers==4.46.3
+torch==2.5.1
