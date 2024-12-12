@@ -1,5 +1,5 @@
 import time
-from tree_sitter import Language, Parser
+from tree_sitter import Language, Parser, Node
 from typing import Dict, Optional, List, Any
 from pathlib import Path
 import os
@@ -10,6 +10,7 @@ from code_chunking.context import ChunkingContext
 from code_chunking.chunk_manager import ChunkManager
 from .python_relationships import CodeRelationshipAnalyzer
 from .schemas import BaseEntity, ChunkMetadata, Location
+from .python_extractor import CodeExtractor
 
 class CodeParser:
     """Parser that integrates enhanced code chunking and relationship analysis."""
@@ -71,6 +72,124 @@ class CodeParser:
         except Exception as e:
             self.logger.error(f"Failed to initialize parser: {str(e)}")
             raise RuntimeError(f"Parser initialization failed: {str(e)}") from e
+        
+    def _extract_entities(self, node: 'Node', content: str, file_path: str, chunk_id: str) -> List[BaseEntity]:
+        """
+        Extract code entities from a tree-sitter node.
+        
+        Args:
+            node: Tree-sitter AST node
+            content: Source code content
+            file_path: Path to source file
+            chunk_id: ID of current chunk
+            
+        Returns:
+            List of extracted code entities
+        """
+        try:
+            # Create or get code extractor instance
+            extractor = CodeExtractor()
+            extractor.set_source(content, file_path, chunk_id)
+            
+            # Process the code chunk and extract entities
+            extracted_data = extractor.process_file(content, file_path, chunk_id)
+            
+            # Combine all entities into a single list
+            entities = []
+            entities.extend(extracted_data.get('functions', []))
+            entities.extend(extracted_data.get('classes', []))
+            entities.extend(extracted_data.get('api_endpoints', []))
+            entities.extend(extracted_data.get('api_routers', []))
+            
+            return entities
+            
+        except Exception as e:
+            self.logger.error(f"Error extracting entities from chunk {chunk_id}: {e}")
+            return []
+
+    def _extract_language_features(self, node: 'Node') -> Dict[str, bool]:
+        """
+        Extract Python language features used in the code.
+        
+        Args:
+            node: Tree-sitter AST node
+            
+        Returns:
+            Dict of language features and their presence
+        """
+        features = {
+            'has_async': False,
+            'has_decorators': False,
+            'has_type_hints': False,
+            'has_context_managers': False,
+            'has_generators': False,
+            'has_comprehensions': False
+        }
+        
+        def visit_node(current_node: 'Node'):
+            if current_node.type == 'async_function_definition':
+                features['has_async'] = True
+            elif current_node.type == 'decorator':
+                features['has_decorators'] = True
+            elif current_node.type == 'type':
+                features['has_type_hints'] = True
+            elif current_node.type == 'with_statement':
+                features['has_context_managers'] = True
+            elif current_node.type == 'yield_expression':
+                features['has_generators'] = True
+            elif current_node.type in ['list_comprehension', 'dictionary_comprehension', 'set_comprehension']:
+                features['has_comprehensions'] = True
+                
+            for child in current_node.children:
+                visit_node(child)
+        
+        visit_node(node)
+        return features
+
+    def _calculate_chunk_complexity(self, node: 'Node') -> int:
+        """
+        Calculate cyclomatic complexity of a code chunk.
+        
+        Args:
+            node: Tree-sitter AST node
+            
+        Returns:
+            Complexity score as integer
+        """
+        complexity = 1  # Base complexity
+        
+        def count_complexity_increasing_nodes(current_node: 'Node'):
+            nonlocal complexity
+            
+            # Nodes that increase complexity
+            complexity_nodes = {
+                'if_statement',
+                'elif_clause',
+                'else_clause',
+                'for_statement',
+                'while_statement',
+                'try_statement',
+                'except_clause',
+                'with_statement',
+                'boolean_operator',  # and, or operators
+                'match_statement',   # Python 3.10+ match-case
+                'case_clause'
+            }
+            
+            # Increment complexity for specific node types
+            if current_node.type in complexity_nodes:
+                complexity += 1
+                
+            # Check for boolean operators (and, or)
+            if current_node.type == 'boolean_operator':
+                complexity += len(current_node.children) - 1
+                
+            # Recursively process child nodes
+            for child in current_node.children:
+                count_complexity_increasing_nodes(child)
+        
+        count_complexity_increasing_nodes(node)
+        return complexity
 
 
     def parse_file(self, file_path: str) -> Dict[str, Any]:
