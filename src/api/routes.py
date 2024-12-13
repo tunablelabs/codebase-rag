@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from git_parser.stats_docs_parser import RepoParser
-from git_parser.base_parser import CodeParser
+# from git_parser.base_parser import CodeParser
+from git_repo_parser.base_parser import CodeParser
 
 router = APIRouter()
 
@@ -25,21 +26,11 @@ async def extract_repository(repo: RepoPath):
         # - Relationship analysis
         # - Entity extraction
         results = parser.parse_directory(repo.path)
-        # print(results)
-        
-        # formatted_results = {
-        #     "repo_path": repo.path,
-        #     "files_analyzed": len(results),
-        #     "analysis_results": {
-        #         file_path: {
-        #             "chunks": result.get('chunks', []),
-        #             "total_chunks": len(result.get('chunks', [])),
-        #             "file_path": file_path
-        #         }
-        #         for file_path, result in results.items()
-        #     }
-        # }
-        
+        # for file_path, entities in results.items():
+        #     print(f"\nFile: {file_path}")
+        #     for entity in entities:
+        #         print(f"- {entity.type}: {entity.name}")
+            
         return results
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
