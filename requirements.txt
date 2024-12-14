@@ -4,3 +4,7 @@ python-multipart==0.0.6
 tree-sitter==0.20.1
 transformers==4.46.3
 torch==2.5.1
+python-dotenv==1.0.1
+qdrant-client==1.12.1
+fastembed==0.4.2
+openai==1.35.4
