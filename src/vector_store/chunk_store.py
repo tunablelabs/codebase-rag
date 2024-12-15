@@ -1,6 +1,6 @@
 from typing import Dict, Any, List
 from qdrant_client import QdrantClient
-from .config import QDRANT_URL, QDRANT_API_KEY, POC_COLLECTION_NAME
+from config.config import QDRANT_URL, QDRANT_API_KEY, POC_COLLECTION_NAME
 import logging
 from qdrant_client.http import models
 

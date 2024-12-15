@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from git_repo_parser.stats_doc_parser import StatsDocParser
 from git_repo_parser.base_parser import CodeParser
 from vector_store.query_handler import query_with_context
-from vector_store.config import POC_COLLECTION_NAME
+from config.config import POC_COLLECTION_NAME
 from vector_store.chunk_store import ChunkStoreHandler
 
 router = APIRouter()
@@ -27,7 +27,7 @@ async def analyze_repository(repo: RepoPath):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@router.post("/analyze")
+@router.post("/chunk_store")
 async def extract_repository(repo: RepoPath):
     try:
         # Initialize parsers and handlers
