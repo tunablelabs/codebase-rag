@@ -1,4 +1,3 @@
-tree_sitter_libs
 __pycache__/
 *.pyc
 *.pyo

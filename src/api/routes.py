@@ -1,8 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from git_parser.stats_docs_parser import RepoParser
-# from git_parser.base_parser import CodeParser
+from git_repo_parser.stats_doc_parser import StatsDocParser
 from git_repo_parser.base_parser import CodeParser
 from vector_store.query_handler import query_with_context
 from vector_store.config import POC_COLLECTION_NAME
@@ -23,8 +22,8 @@ class QueryRequest(BaseModel):
 @router.post("/stats")
 async def analyze_repository(repo: RepoPath):
     try:
-        parser = RepoParser(repo.path)
-        return await parser.analyze_repository()
+        parser = StatsDocParser(repo.path)
+        return await parser.get_stats()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
