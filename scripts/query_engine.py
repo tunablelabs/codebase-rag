@@ -17,6 +17,7 @@ from llama_index.core import (
 from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
 
+
 # Allows nested access to the event loop
 nest_asyncio.apply()
 
@@ -50,11 +51,11 @@ def parse_github_url(url):
     return match.groups() if match else (None, None)
 
 
-def clone_github_repo(repo_url):
+def clone_github_repo(repo_url,repo_path):
     """Clone the GitHub repository."""
     try:
-        print('Cloning the repository...')
-        subprocess.run(["git", "clone", repo_url], check=True, text=True, capture_output=True)
+        #print('Cloning the repository...')
+        subprocess.run(["git", "clone", repo_url,repo_path], check=True, text=True, capture_output=True)
     except subprocess.CalledProcessError as e:
         print(f"Failed to clone repository: {e}")
 
@@ -81,22 +82,25 @@ def generate_repo_ast(repo_path):
 
 def setup_query_engine(github_url,systm_prompt,ast_bool):
     """Setup the query engine for interacting with the repository."""
-    if github_url.startswith('http'):
-        owner, repo = parse_github_url(github_url)
-        if not owner or not repo:
-            print("Invalid GitHub repository URL.")
-            return None, None
-
-        repo_path = repo
-        if not os.path.exists(repo_path):
-            clone_github_repo(github_url)
-    else:
-        github_url=github_url.replace("\\", "\\\\").replace("/", "//")
-        if not os.path.exists(github_url):
-            return None, None
-        else:
-            repo_path=github_url
     try:
+        if github_url.startswith('http'):
+            owner, repo = parse_github_url(github_url)
+            if not owner or not repo:
+                #print("Invalid GitHub repository URL.")
+                return None, None
+
+            repo_path = './repos/'+repo
+            if not os.path.exists('./repos/'):
+                os.makedirs('./repos/')
+            if not os.path.exists(repo_path):
+                clone_github_repo(github_url,repo_path)
+        else:
+            github_url=github_url.replace("\\", "\\\\").replace("/", "//")
+            if not os.path.exists(github_url):
+                return None, None
+            else:
+                repo_path=github_url
+    
         loader = SimpleDirectoryReader(
             input_dir=repo_path,
             required_exts=[".py", ".ipynb", ".js", ".ts", ".md"],
@@ -104,7 +108,7 @@ def setup_query_engine(github_url,systm_prompt,ast_bool):
         )
         docs = loader.load_data()
         if not docs:
-            print("No data found. The repository might be empty.")
+            #print("No data found. The repository might be empty.")
             return None, None
 
         # Add AST summary to documents
@@ -156,7 +160,6 @@ if __name__ == "__main__":
         system_prompt= sys.argv[3]
         ast_bool= sys.argv[4]
         ast_bool= True if ast_bool=='true' else False
-        print('ast_bool',ast_bool)
         query_engine, repo_ast = setup_query_engine(github_url,system_prompt,ast_bool)
         
         if query_engine:
