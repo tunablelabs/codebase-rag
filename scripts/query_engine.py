@@ -79,17 +79,23 @@ def generate_repo_ast(repo_path):
     return repo_summary
 
 
-def setup_query_engine(github_url):
+def setup_query_engine(github_url,systm_prompt,ast_bool):
     """Setup the query engine for interacting with the repository."""
-    owner, repo = parse_github_url(github_url)
-    if not owner or not repo:
-        print("Invalid GitHub repository URL.")
-        return None, None
+    if github_url.startswith('http'):
+        owner, repo = parse_github_url(github_url)
+        if not owner or not repo:
+            print("Invalid GitHub repository URL.")
+            return None, None
 
-    repo_path = repo
-    if not os.path.exists(repo_path):
-        clone_github_repo(github_url)
-
+        repo_path = repo
+        if not os.path.exists(repo_path):
+            clone_github_repo(github_url)
+    else:
+        github_url=github_url.replace("\\", "\\\\").replace("/", "//")
+        if not os.path.exists(github_url):
+            return None, None
+        else:
+            repo_path=github_url
     try:
         loader = SimpleDirectoryReader(
             input_dir=repo_path,
@@ -102,9 +108,10 @@ def setup_query_engine(github_url):
             return None, None
 
         # Add AST summary to documents
-        repo_ast = generate_repo_ast(repo_path)
-        ast_text = json.dumps(repo_ast, indent=2)
-        docs.append(Document(text=f"Repository AST:\n{ast_text}", metadata={"source": "repo_ast"}))
+        if ast_bool:
+            repo_ast = generate_repo_ast(repo_path)
+            ast_text = json.dumps(repo_ast, indent=2)
+            docs.append(Document(text=f"Repository AST:\n{ast_text}", metadata={"source": "repo_ast"}))
 
         # Create vector store index
         embedding_model = get_embedding_model()
@@ -116,22 +123,22 @@ def setup_query_engine(github_url):
             "---------------------\n"
             "{context_str}\n"
             "---------------------\n"
-            "Repository AST:\n"
-            "{repo_ast}\n"
-            "---------------------\n"
-            "You are a coding assistant. Please answer the user's coding questions step by step, "
-            "considering the code content and file structure. If unsure, say 'I don't know.'\n"
+            "{system_prompt}\n"
             "Query: {query_str}\n"
             "Answer: "
         )
         qa_prompt_tmpl = PromptTemplate(qa_prompt_tmpl_str)
-
+        qa_prompt_tmpl= qa_prompt_tmpl.format(system_prompt=systm_prompt)
+        qa_prompt_tmpl = PromptTemplate(qa_prompt_tmpl)
         query_engine = index.as_query_engine(
             text_qa_template=qa_prompt_tmpl,
             similarity_top_k=4
         )
         # print("Query engine setup complete. Ready to answer questions!")
-        return query_engine, repo_ast
+        if ast_bool:
+            return query_engine, repo_ast
+        else:
+            return query_engine, None
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -146,14 +153,22 @@ if __name__ == "__main__":
     try:
         github_url = sys.argv[1]
         question = sys.argv[2]
-
-        query_engine, repo_ast = setup_query_engine(github_url)
-
+        system_prompt= sys.argv[3]
+        ast_bool= sys.argv[4]
+        ast_bool= True if ast_bool=='true' else False
+        print('ast_bool',ast_bool)
+        query_engine, repo_ast = setup_query_engine(github_url,system_prompt,ast_bool)
+        
         if query_engine:
-            query = (
-                f"Given the repository AST:\n{json.dumps(repo_ast, indent=2)}\n\n"
-                f"{question} Considering the file structure, explain in detail."
-            )
+            if ast_bool:
+                query = (
+                    f"Given the repository AST:\n{json.dumps(repo_ast, indent=2)}\n\n"
+                    f"{question} Considering the file structure, explain in detail."
+                )
+            else:
+                query = (
+                    f"{question} Considering the repository files, explain in detail."
+                )
             response = query_engine.query(query)
             output_json({"response": response.response})
         else:

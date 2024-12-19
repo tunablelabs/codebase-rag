@@ -5,7 +5,9 @@ import { FormEvent, useState } from "react";
 export default function Chat() {
   const [githubUrl, setGithubUrl] = useState("");
   const [question, setQuestion] = useState("");
+  const [system_prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
+  const [ast_bool, setAst] = useState(false);
   const [isPending, setIsPending] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -13,7 +15,7 @@ export default function Chat() {
 
     setIsPending(true);
     setResponse("");
-
+    console.log('recieved')
     try {
       const res = await fetch("/api/setup-query-engine", {
         method: "POST",
@@ -23,9 +25,11 @@ export default function Chat() {
         body: JSON.stringify({
           githubUrl,
           question,
+          system_prompt,
+          ast_bool
         }),
       });
-
+      console.log('done')
       if (!res.ok) {
         // Ensure proper error handling
         const errorData = await res.json();
@@ -40,6 +44,10 @@ export default function Chat() {
       setIsPending(false);
     }
   }
+
+  const handleChange = () => { 
+    setAst(!ast_bool)
+  }; 
 
   return (
     <>
@@ -64,10 +72,17 @@ export default function Chat() {
         >
           <fieldset className="flex flex-col space-y-2">
             <input
-              placeholder="GitHub Repository URL"
+              placeholder="GitHub Repository URL or Full Repo Path"
               required
               value={githubUrl}
               onChange={(e) => setGithubUrl(e.target.value)}
+              className="block w-full rounded border border-gray-300 p-2 outline-black"
+            />
+            <textarea
+              placeholder="Enter the system prompt"
+              required
+              value={system_prompt}
+              onChange={(e) => setPrompt(e.target.value)}
               className="block w-full rounded border border-gray-300 p-2 outline-black"
             />
             <textarea
@@ -77,6 +92,15 @@ export default function Chat() {
               onChange={(e) => setQuestion(e.target.value)}
               className="block w-full rounded border border-gray-300 p-2 outline-black"
             />
+            <label htmlFor="ast_name">Include ast to answer the question? 
+            
+            <input
+              name="ast_name"
+              type="checkbox"
+              onChange={handleChange}
+            />
+            </label>
+             
           </fieldset>
           <button
             className="rounded bg-black px-3 py-1 font-medium text-white outline-offset-[3px] outline-black disabled:opacity-50"
