@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     }
     
     const scriptPath = path.resolve("./scripts/query_engine.py");
-    execFile("python", [scriptPath, githubUrl, question, system_prompt,ast_bool], (error, stdout, stderr) => {
+    execFile("python3", [scriptPath, githubUrl, question, system_prompt,ast_bool], (error, stdout, stderr) => {
         if (error) {
             console.error("Error executing Python script:", stderr || error.message);
             return res.status(500).json({ message: "Internal Server Error", error: stderr || error.message });

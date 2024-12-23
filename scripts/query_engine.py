@@ -16,7 +16,9 @@ from llama_index.core import (
 )
 from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
-
+from llama_index.vector_stores.qdrant import QdrantVectorStore
+from qdrant_client import QdrantClient
+from llama_index.core import StorageContext
 
 # Allows nested access to the event loop
 nest_asyncio.apply()
@@ -33,7 +35,31 @@ llm = OpenAI(model="gpt-4o", temperature=0, request_timeout=60.0)
 
 # Initialize embedding model only once
 embed_model = None
+QDRANT_HOST = os.getenv('QDRANT_HOST')
+QDRANT_PORT = int(os.getenv('QDRANT_PORT'))
+API_Key = os.getenv('QDRANT_API_KEY')
 
+def get_qdrant_client():
+    """Initialize and return Qdrant client."""
+    #print("Initializing Qdrant client")
+    
+    try:
+        if QDRANT_HOST == "localhost":
+            client = QdrantClient(
+                host=QDRANT_HOST,
+                port=QDRANT_PORT,
+                prefer_grpc=False
+            )
+        else:
+            client = QdrantClient(
+                url=QDRANT_HOST,
+                api_key=API_Key,
+                prefer_grpc=False
+            )
+        #print(f"Successfully connected to Qdrant instance")
+        return client
+    except Exception as e:
+        print(f"Failed to connect to Qdrant: {str(e)}")
 
 def get_embedding_model():
     """Initialize the embedding model if not already loaded."""
@@ -65,7 +91,7 @@ def generate_repo_ast(repo_path):
     repo_summary = {}
     for root, dirs, files in os.walk(repo_path):
         for file in files:
-            if file.endswith('.py'):
+            if file.endswith(('.py','.ts','.js','.ipynb')):
                 file_path = os.path.join(root, file)
                 with open(file_path, 'r') as f:
                     try:
@@ -119,7 +145,54 @@ def setup_query_engine(github_url,systm_prompt,ast_bool):
 
         # Create vector store index
         embedding_model = get_embedding_model()
-        index = VectorStoreIndex.from_documents(docs, embed_model=embedding_model, show_progress=True)
+        collection_name = f"{owner}_{repo}".lower()
+        qdrant_client = get_qdrant_client()
+        collections = qdrant_client.get_collections().collections
+        collection_exists = any(c.name == collection_name for c in collections)
+        
+        if not collection_exists:
+            #print('adding new collections')
+             # Add collection creation
+            qdrant_client.create_collection(
+                collection_name=collection_name,
+                vectors_config={
+                    "size": 1536,  # OpenAI embedding dimension
+                    "distance": "Cosine"
+                }
+            )
+            vector_store = QdrantVectorStore(
+                client=qdrant_client,
+                collection_name=collection_name,
+                batch_size=100,  # Explicit batch size
+                prefer_grpc=False,  # Use REST API
+                timeout=60  # Seconds
+            )
+            # Create storage context explicitly
+            storage_context = StorageContext.from_defaults(vector_store=vector_store, persist_dir=None )
+            index = VectorStoreIndex.from_documents(
+                    docs,
+                    storage_context=storage_context,
+                    embed_model=get_embedding_model(),
+                    show_progress=True
+                )
+        else:
+            vector_store = QdrantVectorStore(
+                client=qdrant_client,
+                collection_name=collection_name
+            )
+            # Create storage context with persist_dir=None to avoid local storage
+            storage_context = StorageContext.from_defaults(
+                vector_store=vector_store,
+                persist_dir=None
+            )
+            index = VectorStoreIndex.from_vector_store(
+                vector_store=vector_store,
+                storage_context=storage_context,
+                embed_model=get_embedding_model(),
+                show_progress=True)
+            
+        
+        #index = VectorStoreIndex.from_documents(docs, embed_model=embedding_model, show_progress=True)
 
         # Customize the query prompt
         qa_prompt_tmpl_str = (
