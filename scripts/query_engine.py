@@ -84,15 +84,14 @@ def setup_query_engine(github_url,systm_prompt,ast_bool):
     """Setup the query engine for interacting with the repository."""
     try:
         if github_url.startswith('http'):
-            owner, repo = parse_github_url(github_url)
+            owner, repo = github_url.split("/")[-2:]
             if not owner or not repo:
-                #print("Invalid GitHub repository URL.")
                 return None, None
-
             repo_path = './repos/'+repo
             if not os.path.exists('./repos/'):
                 os.makedirs('./repos/')
             if not os.path.exists(repo_path):
+                print('cloning')
                 clone_github_repo(github_url,repo_path)
         else:
             github_url=github_url.replace("\\", "\\\\").replace("/", "//")
@@ -108,7 +107,7 @@ def setup_query_engine(github_url,systm_prompt,ast_bool):
         )
         docs = loader.load_data()
         if not docs:
-            #print("No data found. The repository might be empty.")
+            print("No data found. The repository might be empty.")
             return None, None
 
         # Add AST summary to documents
@@ -155,10 +154,11 @@ def output_json(data):
 
 if __name__ == "__main__":
     try:
-        github_url = sys.argv[1]
-        question = sys.argv[2]
-        system_prompt= sys.argv[3]
-        ast_bool= sys.argv[4]
+        github_url = 'https://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@github.com/LumenaLabs/edge-deploy'
+        question = 'how many functions in this repo'
+        system_prompt= "You are a coding assistant. Please answer the user's coding questions step by step, considering the code content and file structure. If unsure, say 'I don't know."
+        ast_bool= 'true'
+        print(system_prompt)
         ast_bool= True if ast_bool=='true' else False
         query_engine, repo_ast = setup_query_engine(github_url,system_prompt,ast_bool)
         

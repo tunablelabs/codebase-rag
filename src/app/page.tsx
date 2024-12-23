@@ -15,7 +15,6 @@ export default function Chat() {
 
     setIsPending(true);
     setResponse("");
-    console.log('recieved')
     try {
       const res = await fetch("/api/setup-query-engine", {
         method: "POST",
@@ -81,7 +80,7 @@ export default function Chat() {
             <textarea
               placeholder="Enter the system prompt"
               required
-              value={system_prompt}
+              value="You are a coding assistant. Please answer the user's coding questions step by step, considering the code content and file structure. If unsure, say 'I don't know."
               onChange={(e) => setPrompt(e.target.value)}
               className="block w-full rounded border border-gray-300 p-2 outline-black"
             />
@@ -91,7 +90,8 @@ export default function Chat() {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               className="block w-full rounded border border-gray-300 p-2 outline-black"
-            />
+            >You are a coding assistant. Please answer the user's coding questions step by step, considering the code content and file structure. If unsure, say 'I don't know. </textarea>
+            
             <label htmlFor="ast_name">Include ast to answer the question? 
             
             <input
