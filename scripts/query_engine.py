@@ -91,7 +91,6 @@ def setup_query_engine(github_url,systm_prompt,ast_bool):
             if not os.path.exists('./repos/'):
                 os.makedirs('./repos/')
             if not os.path.exists(repo_path):
-                print('cloning')
                 clone_github_repo(github_url,repo_path)
         else:
             github_url=github_url.replace("\\", "\\\\").replace("/", "//")
@@ -99,15 +98,17 @@ def setup_query_engine(github_url,systm_prompt,ast_bool):
                 return None, None
             else:
                 repo_path=github_url
-    
-        loader = SimpleDirectoryReader(
-            input_dir=repo_path,
-            required_exts=[".py", ".ipynb", ".js", ".ts", ".md"],
-            recursive=True
-        )
+        try:
+            loader = SimpleDirectoryReader(
+                input_dir=repo_path,
+                required_exts=[".py", ".ipynb", ".js", ".ts", ".md"],
+                recursive=True
+            )
+        except Exception as e:
+            return 'no_files', None
         docs = loader.load_data()
         if not docs:
-            print("No data found. The repository might be empty.")
+            #print("No data found. The repository might be empty.")
             return None, None
 
         # Add AST summary to documents
@@ -154,27 +155,28 @@ def output_json(data):
 
 if __name__ == "__main__":
     try:
-        github_url = 'https://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@github.com/LumenaLabs/edge-deploy'
-        question = 'how many functions in this repo'
-        system_prompt= "You are a coding assistant. Please answer the user's coding questions step by step, considering the code content and file structure. If unsure, say 'I don't know."
-        ast_bool= 'true'
-        print(system_prompt)
+        github_url = sys.argv[1]
+        question = sys.argv[2]
+        system_prompt= sys.argv[3]
+        ast_bool= sys.argv[4]
         ast_bool= True if ast_bool=='true' else False
         query_engine, repo_ast = setup_query_engine(github_url,system_prompt,ast_bool)
-        
-        if query_engine:
-            if ast_bool:
-                query = (
-                    f"Given the repository AST:\n{json.dumps(repo_ast, indent=2)}\n\n"
-                    f"{question} Considering the file structure, explain in detail."
-                )
-            else:
-                query = (
-                    f"{question} Considering the repository files, explain in detail."
-                )
-            response = query_engine.query(query)
-            output_json({"response": response.response})
+        if query_engine=='no_files':
+            output_json({"response": "This github repo doesn't contain python or javascript files, as of now we are only supporting Python and Javascript"})
         else:
-            output_json({"error": "Failed to set up query engine"})
+            if query_engine:
+                if ast_bool:
+                    query = (
+                        f"Given the repository AST:\n{json.dumps(repo_ast, indent=2)}\n\n"
+                        f"{question} Considering the file structure, explain in detail."
+                    )
+                else:
+                    query = (
+                        f"{question} Considering the repository files, explain in detail."
+                    )
+                response = query_engine.query(query)
+                output_json({"response": response.response})
+            else:
+                output_json({"error": "Failed to set up query engine"})
     except Exception as e:
         output_json({"error": str(e)})
