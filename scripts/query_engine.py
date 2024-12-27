@@ -119,7 +119,8 @@ def setup_query_engine(github_url,systm_prompt,ast_bool):
             if not os.path.exists(repo_path):
                 clone_github_repo(github_url,repo_path)
         else:
-            github_url=github_url.replace("\\", "\\\\").replace("/", "//")
+            owner, repo= 'user', github_url
+            github_url='./repos/'+github_url
             if not os.path.exists(github_url):
                 return None, None
             else:

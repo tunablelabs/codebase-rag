@@ -45,7 +45,7 @@ export default function RootLayout({
                 href="https://github.com"
                 className="text-gray-500 hover:text-gray-900"
               >
-                <GitHubLogoIcon width="20" height="20" />
+                <GitHubLogoIcon width="30" height="40" />
               </a>
             </div>
           </div>
