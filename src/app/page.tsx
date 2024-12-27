@@ -75,35 +75,37 @@ export default function Chat() {
               required
               value={githubUrl}
               onChange={(e) => setGithubUrl(e.target.value)}
-              className="block w-full rounded border border-gray-300 p-2 outline-black"
+              className="input input-bordered input-sm"
             />
             <textarea
               placeholder="Enter the system prompt"
               required
               value="You are a coding assistant. Please answer the user's coding questions step by step, considering the code content and file structure. If unsure, say 'I don't know."
               onChange={(e) => setPrompt(e.target.value)}
-              className="block w-full rounded border border-gray-300 p-2 outline-black"
+              className="textarea textarea-bordered textarea-sm"
             />
-            <textarea
+            <input
               placeholder="Enter your question about the code"
               required
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              className="block w-full rounded border border-gray-300 p-2 outline-black"
-            >You are a coding assistant. Please answer the user's coding questions step by step, considering the code content and file structure. If unsure, say 'I don't know. </textarea>
-            
-            <label htmlFor="ast_name">Include ast to answer the question? 
-            
+              className="input input-bordered input-md"
+            />
+           
+
+            <label className="flex items-center space-x-3">
+            <span className="label-text">Include ast to answer the question? </span>
             <input
               name="ast_name"
               type="checkbox"
+              className="checkbox"
               onChange={handleChange}
             />
             </label>
              
           </fieldset>
           <button
-            className="rounded bg-black px-3 py-1 font-medium text-white outline-offset-[3px] outline-black disabled:opacity-50"
+            className="btn btn-neutral"
             type="submit"
             disabled={isPending}
           >

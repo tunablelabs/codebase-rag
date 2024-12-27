@@ -34,13 +34,13 @@ export default function RootLayout({
         <header className="text-sm font-medium">
           <div className="mx-auto flex max-w-6xl gap-4 px-4 py-4">
             <NavLink
-              className="text-gray-400 data-[active]:text-gray-900"
+              className="navbar-center"
               href="/"
             >
               Ask a question
             </NavLink>
 
-            <div className="ml-auto">
+            <div className="ml-auto avatar online placeholder">
               <a
                 href="https://github.com"
                 className="text-gray-500 hover:text-gray-900"
