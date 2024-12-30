@@ -17,7 +17,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "CodeBase RAG-Chat",
+  title: "Code RAG Assistant",
   description: "Quickstart",
 };
 
@@ -29,41 +29,44 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} flex min-h-full flex-col antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} flex min-h-full flex-col bg-gradient-to-br from-slate-100 to-white dark:from-slate-950 dark:to-slate-900 text-slate-900 dark:text-slate-100 antialiased`}
       >
-        <header className="text-sm font-medium">
-          <div className="mx-auto flex max-w-6xl gap-4 px-4 py-4">
-            <NavLink
-              className="navbar-center"
-              href="/"
-            >
-              Ask a question
-            </NavLink>
-
-            <div className="ml-auto avatar online placeholder">
+        <header className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
+          <div className="mx-auto flex max-w-5xl items-center justify-center px-4 py-4 relative">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Code RAG Assistant
+            </h1>
+            <div className="absolute right-4 flex items-center gap-6">
+              <NavLink
+                className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+                href="/"
+              >
+                Ask a Question
+              </NavLink>
               <a
                 href="https://github.com"
-                className="text-gray-500 hover:text-gray-900"
+                className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
               >
-                <GitHubLogoIcon width="30" height="40" />
+                <GitHubLogoIcon width="24" height="24" />
               </a>
             </div>
           </div>
         </header>
 
-        <main className="flex grow flex-col">{children}</main>
+        <main className="flex grow flex-col px-4 py-8">
+          {children}
+        </main>
 
-        <footer className="bg-gray-50 text-sm text-gray-500">
-          <div className="mx-auto max-w-6xl px-4 py-6">
+        <footer className="border-t border-slate-200 dark:border-slate-800">
+          <div className="mx-auto max-w-5xl px-4 py-6 text-sm text-slate-600 dark:text-slate-400">
             Powered by{" "}
             <Link
-              className="font-medium underline underline-offset-2"
+              className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
               target="_blank"
               href="https://www.tunablelabs.ai/"
             >
               TunableLabs
             </Link>
-            .
           </div>
         </footer>
       </body>
