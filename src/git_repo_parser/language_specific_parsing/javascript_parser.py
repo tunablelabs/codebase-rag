@@ -1,10 +1,10 @@
-from typing import Any, Dict, List, Tuple
-from .base_types import BaseLanguageParser, CodeEntity, CodeLocation, StringLiteral
+from typing import Any, Dict, List
+from ..base_types import BaseLanguageParser, CodeEntity, CodeLocation, StringLiteral
 
-class JavaParser(BaseLanguageParser):
+class JavaScriptParser(BaseLanguageParser):
     def get_language_name(self) -> str:
-        return "java"
-    
+        return "javascript"
+
     def parse(self, content: bytes) -> Any:
         """Parse code content using tree-sitter"""
         return self.parser.parse(content)
@@ -13,13 +13,13 @@ class JavaParser(BaseLanguageParser):
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
-            self.code = content
-            tree = self.parser.parse(bytes(content, 'utf-8'))
+            self.code = content 
+            tree = self.parse(bytes(content, 'utf-8'))
             entities = self.extract_entities(tree.root_node)
             return entities
         except Exception as e:
-            self.logger.error(f"Error parsing Java file {file_path}: {e}")
-            return [], []
+            self.logger.error(f"Error parsing JavaScript file {file_path}: {e}")
+            return []
 
     def extract_entities(self, node: Any) -> List[CodeEntity]:
         entities = []
@@ -44,47 +44,32 @@ class JavaParser(BaseLanguageParser):
                     ))
         return entities
 
-    def extract_string_literals(self, node: Any) -> List[StringLiteral]:
-        string_literals = []
-        for child in node.children:
-            if child.type == "string_literal":
-                text = child.text.decode("utf-8").strip('"')
-                if len(text) >= 5:  # Adjust the minimum length as needed
-                    string_literals.append(StringLiteral(
-                        id=f"string_literal_{len(string_literals)}",
-                        content=text,
-                        type="string",
-                        location=self.create_code_location(child)
-                    ))
-        return string_literals
-
     def get_entity_patterns(self) -> Dict[str, Any]:
         return {
+            'function': ['function_declaration', 'arrow_function'],
             'class': 'class_declaration',
-            'method': 'method_declaration',
-            'interface': 'interface_declaration'
+            'method': 'method_definition'
         }
 
     def extract_metadata(self, node: Any) -> Dict[str, Any]:
         metadata = {
-            'modifiers': [],
-            'is_public': False,
-            'is_static': False,
-            'is_final': False,
-            'return_type': None
+            'is_async': 'async' in node.type,
+            'is_arrow': node.type == 'arrow_function',
+            'is_export': False,
+            'is_default_export': False
         }
 
-        for child in node.children:
-            # Extract modifiers
-            if child.type == 'modifiers':
-                for modifier in child.children:
-                    mod_text = modifier.text.decode('utf-8')
-                    metadata['modifiers'].append(mod_text)
-                    metadata[f'is_{mod_text}'] = True
-            
-            # Extract return type for methods
-            elif child.type == 'type_identifier' and node.type == 'method_declaration':
-                metadata['return_type'] = child.text.decode('utf-8')
+        # Check for exports
+        parent = node.parent
+        while parent:
+            if parent.type == 'export_statement':
+                metadata['is_export'] = True
+                metadata['is_default_export'] = any(
+                    child.type == 'default' 
+                    for child in parent.children
+                )
+                break
+            parent = parent.parent
 
         return metadata
 

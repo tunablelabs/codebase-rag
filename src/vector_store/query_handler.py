@@ -1,5 +1,5 @@
 from qdrant_client import QdrantClient
-from config.config import OPENAI_API_KEY, QDRANT_URL, QDRANT_API_KEY, POC_COLLECTION_NAME
+from config.config import OPENAI_API_KEY, QDRANT_HOST, QDRANT_API_KEY
 from openai import OpenAI
 import os
 
@@ -7,12 +7,13 @@ import os
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 client = QdrantClient(
-    url=QDRANT_URL,
+    url=QDRANT_HOST,
     api_key=QDRANT_API_KEY
 )
 
 
 def query_with_context(query, limit):
+    POC_COLLECTION_NAME = "code_chunks"
 
     # Fetch context from Qdrant
     search_result = client.query(

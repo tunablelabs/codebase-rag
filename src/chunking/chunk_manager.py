@@ -9,13 +9,7 @@ from .language_specific_chunk.java_chunker import JavaChunker
 
 class ChunkManager:
     """Manages code chunking across different languages"""
-    
-    LANGUAGE_MAPPING = {
-        '.py': ('python', PythonChunker),
-        '.js': ('javascript', JavaScriptChunker),
-        '.java': ('java', JavaChunker)
-    }
-    
+      
     def __init__(self, parsers: Dict[str, any]):
         """
         Initialize chunk manager with language parsers.
@@ -23,6 +17,11 @@ class ChunkManager:
         Args:
             parsers: Dict mapping file extensions to tree-sitter parsers
         """
+        self.LANGUAGE_MAPPING = {
+        '.py': ('python', PythonChunker),
+        '.js': ('javascript', JavaScriptChunker),
+        '.java': ('java', JavaChunker)
+        }
         self.logger = logging.getLogger(self.__class__.__name__)
         self.parsers = parsers  # Store the parsers
         self.chunkers = self._initialize_chunkers(parsers)
@@ -30,6 +29,7 @@ class ChunkManager:
     def _initialize_chunkers(self, parsers: Dict[str, any]) -> Dict[str, any]:
         """Initialize language-specific chunkers"""
         chunkers = {}
+        self.parsers = parsers
         try:
             for ext, (lang, chunker_class) in self.LANGUAGE_MAPPING.items():
                 parser = self.parsers.get(ext)

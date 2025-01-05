@@ -9,23 +9,23 @@ from .base_types import (
     CodeEntity, 
     BaseLanguageParser
 )
-from .java_parser import JavaParser
-from .javascript_parser import JavaScriptParser
-from .python_parser import PythonParser
+from .language_specific_parsing.java_parser import JavaParser
+from .language_specific_parsing.javascript_parser import JavaScriptParser
+from .language_specific_parsing.python_parser import PythonParser
 from chunking.chunk_manager import ChunkManager
 from chunking.strategies import ChunkInfo
 
 class CodeParser:
     """Main parser that integrates all language parsers"""
-    
-    LANGUAGE_MAPPING = {
+      
+    def __init__(self):
+        self.LANGUAGE_MAPPING = {
         '.py': ('python', PythonParser),
         '.js': ('javascript', JavaScriptParser),
         '.java': ('java', JavaParser)
-    }
-    
-    def __init__(self):
+        }
         self.logger = logging.getLogger(__name__)
+        self.base_path = Path(__file__).parent.parent.parent / "tree_sitter_libs"
         self.parsers = self._initialize_parsers()
         self.chunk_manager = ChunkManager(self.parsers) 
     
@@ -37,7 +37,10 @@ class CodeParser:
         for ext, (lang, parser_class) in self.LANGUAGE_MAPPING.items():
             try:
                 build_path = str(build_dir / f"{lang}.so")
-                vendor_path = f"tree_sitter_libs/tree-sitter-{lang}"
+                vendor_path = str(self.base_path / f"tree-sitter-{lang}")
+                if not Path(vendor_path).exists():
+                    self.logger.error(f"Vendor path not found: {vendor_path}")
+                    continue
                 parsers[ext] = parser_class(build_path, vendor_path)
             except Exception as e:
                 self.logger.error(f"Failed to initialize {lang} parser: {e}")
