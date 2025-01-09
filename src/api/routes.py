@@ -4,9 +4,9 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from git_repo_parser.stats_parser import StatsParser
 from git_repo_parser.base_parser import CodeParser
-from vector_store.query_handler import query_with_context
 from vector_store.chunk_store import ChunkStoreHandler
 from vector_store.retrive_generate import ChatLLM
+from chunking.document_chunks import DocumentChunker
 from config.config import OPENAI_API_KEY, QDRANT_HOST, QDRANT_API_KEY
 import json
 
@@ -37,6 +37,7 @@ class RepoPath(BaseModel):
     
 class QueryRequest(RepoPath):
     """Request model for querying the code"""
+    ast_flag: str
     query: str
     limit: int = 3
     
@@ -64,20 +65,24 @@ async def extract_repository(repo: RepoPath):
     try:
         # Initialize parsers and handlers
         parser = CodeParser()
+        doc_chunker = DocumentChunker()
         # Create Collection name and check if collection exist, If not exist create a collection
         chunk_store = ChunkStoreHandler(repo.path)
-        # Parse the repository and get chunks
-        chunks = parser.parse_directory(repo.path) 
+        # Parse the repository and get chunks for code files
+        code_chunks = parser.parse_directory(repo.path) 
+        # Parse the repository and get chunks for document files
+        doc_chunks = doc_chunker.parse_directory(repo.path) 
         # Store chunks in vector database
-        success = chunk_store.store_chunks(chunks)
-        if not success:
+        success_code_files = chunk_store.store_chunks(code_chunks)
+        success_doc_files = chunk_store.store_chunks(doc_chunks)
+        if not success_code_files or not success_doc_files:
             raise HTTPException(
                 status_code=500, 
                 detail="Failed to store chunks in vector database"
             )
         return {
             "status": "success",
-            "chunks_processed": len(chunks),
+            "chunks_processed": len(code_chunks)+len(doc_chunks),
             "repository": repo.path
         }
         
@@ -98,6 +103,7 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(get_llm)):
     try:
         collection_info = ChunkStoreHandler(request.path)
         contexts, response = llm.invoke(
+            request.ast_flag,
             collection_name = collection_info.collection_name,
             query=request.query,
             limit=request.limit,
@@ -126,6 +132,7 @@ async def query_code_stream(request: QueryRequest, llm: ChatLLM = Depends(get_ll
         collection_info = ChunkStoreHandler(request.path)
         async def generate():
             for contexts, partial_response in llm.stream(
+                request.ast_flag,
                 collection_name = collection_info.collection_name,
                 query=request.query,
                 limit=request.limit,

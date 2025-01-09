@@ -12,7 +12,7 @@ class StatsParser:
         self.LANGUAGE_EXTENSIONS = {'.py': 'Python','.js': 'JavaScript','.java': 'Java','.cpp': 'C++',
                                     '.c': 'C','.html': 'HTML','.css': 'CSS','.rs': 'Rust','.go': 'Go',
                                     '.rb': 'Ruby','.php': 'PHP','.ts': 'TypeScript','.swift': 'Swift',
-                                    '.kt': 'Kotlin'}
+                                    '.kt': 'Kotlin','.txt':'Text File'}
         self.repo_path = Path(repo_path)
         self.excluded_dirs = {'.git', 'node_modules', 'venv', '__pycache__', 'build', 'dist'}
         self.logger = logging.getLogger(__name__)

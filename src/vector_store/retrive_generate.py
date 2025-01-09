@@ -109,11 +109,12 @@ class ChatLLM:
 
         return [m.to_openai_format() for m in input_]
 
-    def get_context_from_qdrant(self, collection_name, query: str, limit: int = 5) -> list[str]:
+    def get_context_from_qdrant(self, ast_flag: str, collection_name, query: str, limit: int = 5) -> list[str]:
         """
         Fetch relevant context chunks from Qdrant.
         
         Args:
+            ast_flag (str): To include AST chunks in retrived chunks
             collection_name (str): Name of the Qdrant collection
             query (str): Search query
             limit (int): Maximum number of chunks to retrieve
@@ -122,6 +123,8 @@ class ChatLLM:
             list[str]: Formatted context chunks
         """
         try:
+            # Str to Bool Conversion
+            ast_filter = ast_flag == "True"
             openai_client = OpenAI(api_key=self.api_key)
             # Get embedding for the query
             query_embedd = openai_client.embeddings.create(
@@ -129,12 +132,30 @@ class ChatLLM:
                 input=query
             )
             query_vector = query_embedd.data[0].embedding
+            search_params = {
+                    "collection_name": collection_name,
+                    "query_vector": query_vector,
+                    "limit": limit
+            }
+            # Apply a filter condition based on the value of `ast_flag`. 
+            # - If `ast_flag` is False, retrieve only text-based data. 
+            # - If `ast_flag` is True, retrieve all data chunks without restriction.
+            if ast_filter:
+                search_params["query_filter"] = {
+                    "must": []
+                } 
+                
+            else:
+                search_params["query_filter"] = {
+                    "must": [
+                        {
+                            "key": "metadata.language",
+                            "match": {"value": "text"}
+                        }
+                    ]
+                }        
             # Search in Qdrant using the embedded vector
-            search_result = self.qdrant_client.search(
-                collection_name=collection_name,
-                query_vector=query_vector,
-                limit=limit
-            )
+            search_result = self.qdrant_client.search(**search_params)
             contexts = [
             f"content: {r.payload.get('content', '')}, "
             f"type: {r.payload.get('metadata', {}).get('type', 'unknown')}, "
@@ -148,7 +169,7 @@ class ChatLLM:
         except Exception as e:
             raise Exception(f"Qdrant query failed: {str(e)}")
 
-    def prepare_messages_with_context(self, collection_name, query: str, limit: int = 5) -> Tuple[list[BaseMessage], list[str]]:
+    def prepare_messages_with_context(self, ast_flag, collection_name, query: str, limit: int = 5) -> Tuple[list[BaseMessage], list[str]]:
         """
         Prepare messages with context for the LLM.
         
@@ -159,7 +180,7 @@ class ChatLLM:
         Returns:
             Tuple[list[BaseMessage], list[str]]: Prepared messages and raw contexts
         """
-        contexts = self.get_context_from_qdrant(collection_name, query, limit)
+        contexts = self.get_context_from_qdrant(ast_flag, collection_name, query, limit)
         
         system_prompt = """You're assisting a user who has a question based on the documentation.
         Address their query using relevant information from the documentation.
@@ -177,6 +198,7 @@ class ChatLLM:
 
     def invoke(
         self, 
+        ast_flag,
         collection_name,
         query: str, 
         limit: int = 5, 
@@ -195,7 +217,7 @@ class ChatLLM:
         Returns:
             Tuple[list[str], LLMInterface]: Contexts and LLM response
         """
-        messages, contexts = self.prepare_messages_with_context(collection_name, query, limit)
+        messages, contexts = self.prepare_messages_with_context(ast_flag, collection_name, query, limit)
         
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -226,6 +248,7 @@ class ChatLLM:
 
     def stream(
         self, 
+        ast_flag,
         collection_name,
         query: str, 
         limit: int = 5, 
@@ -244,7 +267,7 @@ class ChatLLM:
         Yields:
             Tuple[list[str], LLMInterface]: Contexts and partial LLM response
         """
-        messages, contexts = self.prepare_messages_with_context(collection_name, query, limit)
+        messages, contexts = self.prepare_messages_with_context(ast_flag, collection_name, query, limit)
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",

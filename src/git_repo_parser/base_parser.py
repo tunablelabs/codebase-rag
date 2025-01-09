@@ -31,7 +31,7 @@ class CodeParser:
     
     def _initialize_parsers(self) -> Dict[str, BaseLanguageParser]:
         parsers = {}
-        build_dir = Path("build")
+        build_dir = Path(__file__).parent.parent.parent / "tree_build"
         build_dir.mkdir(exist_ok=True)
         
         for ext, (lang, parser_class) in self.LANGUAGE_MAPPING.items():
@@ -81,6 +81,7 @@ class CodeParser:
             return {
                 'file_path': file_path,
                 'language': self.LANGUAGE_MAPPING[ext][0],
+                'file_type': "code_file",
                 'entities': entities,
                 'chunks': chunks
             }
