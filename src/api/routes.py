@@ -5,9 +5,9 @@ from pydantic import BaseModel
 from git_repo_parser.stats_parser import StatsParser
 from git_repo_parser.base_parser import CodeParser
 from vector_store.chunk_store import ChunkStoreHandler
-from vector_store.retrive_generate import ChatLLM
+from vector_store.retrive_generate import ChatLLM, OpenAIProvider, AzureOpenAIProvider
 from chunking.document_chunks import DocumentChunker
-from config.config import OPENAI_API_KEY, QDRANT_HOST, QDRANT_API_KEY
+from config.config import OPENAI_API_KEY, QDRANT_HOST, QDRANT_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_MODEL
 import json
 
 
@@ -21,9 +21,13 @@ def get_llm() -> ChatLLM:
     """
     global _llm_instance
     if _llm_instance is None:
+        # For OpenAI
+        openai_provider = OpenAIProvider(api_key=OPENAI_API_KEY,model="gpt-4")
+        # For Azure OpenAI
+        azure_provider = AzureOpenAIProvider(api_key=AZURE_OPENAI_KEY,endpoint=AZURE_OPENAI_ENDPOINT,deployment_name=AZURE_OPENAI_MODEL)
+        # Initialize ChatLLM with required provider
         _llm_instance = ChatLLM(
-            api_key=OPENAI_API_KEY,
-            model="gpt-3.5-turbo",
+            provider = openai_provider,
             qdrant_url=QDRANT_HOST,
             qdrant_api_key=QDRANT_API_KEY
         )
