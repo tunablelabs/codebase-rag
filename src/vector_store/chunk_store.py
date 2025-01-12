@@ -55,8 +55,8 @@ class ChunkStoreHandler:
         components = [x for x in path.split('/') if x]
         # Take the last two components (usually username/org and repo name)
         name_components = components[-2:]
-        base_name = '_'.join(name_components)
-        clean_name = re.sub(r'[^a-z0-9]+', '_', base_name.lower()).strip('_')
+        base_name = '-'.join(name_components)
+        clean_name = re.sub(r'[^a-z0-9-]+', '_', base_name.lower()).strip('_')
         
         return clean_name
         
