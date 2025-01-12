@@ -1,5 +1,5 @@
 from typing import Iterator, Optional, Any, Tuple, List
-from openai import OpenAI
+from openai import OpenAI, AzureOpenAI
 from qdrant_client import QdrantClient
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -8,6 +8,7 @@ import os
 import json
 import requests
 from datetime import datetime
+from abc import ABC, abstractmethod
 
 # Message Classes for OpenAI Chat Format
 class BaseMessage:
@@ -54,31 +55,146 @@ class LLMInterface:
         self.total_cost = total_cost
         self.timestamp = timestamp or datetime.now().isoformat()
 
+# Abstract base class for LLM providers
+class BaseLLMProvider(ABC):
+    @abstractmethod
+    def prepare_client(self):
+        pass
+
+    @abstractmethod
+    def invoke(self, messages: list[dict], temperature: float, **kwargs) -> dict:
+        pass
+
+    @abstractmethod
+    def stream(self, messages: list[dict], temperature: float, **kwargs) -> Iterator[Any]:
+        pass
+
+# OpenAI Provider Implementation
+class OpenAIProvider(BaseLLMProvider):
+    def __init__(self, api_key: str, model: str):
+        self.api_key = api_key
+        self.model = model
+        self.base_url = "https://api.openai.com/v1/chat/completions"
+
+    def prepare_client(self):
+        pass  # Empty implementation since we're using REST API
+
+    def invoke(self, messages: list[dict], temperature: float, **kwargs) -> dict:
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+            **kwargs,
+        }
+
+        response = requests.post(self.base_url, headers=headers, json=payload)
+        response.raise_for_status()
+        return response.json()
+
+    def stream(self, messages: list[dict], temperature: float, **kwargs) -> Iterator[Any]:
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+            "stream": True,
+            **kwargs,
+        }
+
+        with requests.post(self.base_url, headers=headers, json=payload, stream=True) as response:
+            response.raise_for_status()
+            for line in response.iter_lines():
+                if line:
+                    chunk = line.decode("utf-8").strip()
+                    if chunk.startswith("data: "):
+                        chunk = chunk[6:]
+                        if chunk != "[DONE]":
+                            try:
+                                chunk_data = json.loads(chunk)
+                                yield chunk_data
+                            except json.JSONDecodeError:
+                                continue
+
+# Azure OpenAI Provider Implementation
+class AzureOpenAIProvider(BaseLLMProvider):
+    def __init__(self, api_key: str, endpoint: str, deployment_name: str):
+        self.api_key = api_key
+        self.endpoint = endpoint
+        self.deployment_name = deployment_name
+
+    def prepare_client(self):
+        pass  # Empty implementation since we're using REST API
+
+    def invoke(self, messages: list[dict], temperature: float, **kwargs) -> dict:
+        headers = {
+            "api-key": self.api_key,
+            "Content-Type": "application/json",
+        }
+        
+        url = f"{self.endpoint}/openai/deployments/{self.deployment_name}/chat/completions?api-version=2024-02-15-preview"
+        
+        payload = {
+            "messages": messages,
+            "temperature": temperature,
+            **kwargs,
+        }
+
+        response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        return response.json()
+
+    def stream(self, messages: list[dict], temperature: float, **kwargs) -> Iterator[Any]:
+        headers = {
+            "api-key": self.api_key,
+            "Content-Type": "application/json",
+        }
+        
+        url = f"{self.endpoint}/openai/deployments/{self.deployment_name}/chat/completions?api-version=2024-02-15-preview"
+        
+        payload = {
+            "messages": messages,
+            "temperature": temperature,
+            "stream": True,
+            **kwargs,
+        }
+
+        with requests.post(url, headers=headers, json=payload, stream=True) as response:
+            response.raise_for_status()
+            for line in response.iter_lines():
+                if line:
+                    chunk = line.decode("utf-8").strip()
+                    if chunk.startswith("data: "):
+                        chunk = chunk[6:]
+                        if chunk != "[DONE]":
+                            try:
+                                chunk_data = json.loads(chunk)
+                                yield chunk_data
+                            except json.JSONDecodeError:
+                                continue
+
+
+
 class ChatLLM:
     """Main class for handling chat interactions with context from Qdrant."""
     
     def __init__(
         self, 
-        api_key: str, 
-        model: str, 
+        provider: BaseLLMProvider,
         qdrant_url: str, 
-        qdrant_api_key: str, 
-        base_url: str = "https://api.openai.com/v1/chat/completions"
+        qdrant_api_key: str,
     ):
-        """
-        Initialize the ChatLLM with necessary configurations.
-        
-        Args:
-            api_key (str): OpenAI API key
-            model (str): OpenAI model name (e.g., "gpt-3.5-turbo")
-            qdrant_url (str): Qdrant server URL
-            qdrant_api_key (str): Qdrant API key
-            base_url (str): OpenAI API base URL
-        """
-        self.api_key = api_key
-        self.model = model
-        self.base_url = base_url
-        
+        self.provider = provider
+        self.provider.prepare_client()
+              
         # Initialize Qdrant client
         try:
             self.qdrant_client = QdrantClient(
@@ -125,7 +241,7 @@ class ChatLLM:
         try:
             # Str to Bool Conversion
             ast_filter = ast_flag == "True"
-            openai_client = OpenAI(api_key=self.api_key)
+            openai_client = OpenAI(api_key=self.provider.api_key)
             # Get embedding for the query
             query_embedd = openai_client.embeddings.create(
                 model="text-embedding-ada-002",
@@ -219,32 +335,22 @@ class ChatLLM:
         """
         messages, contexts = self.prepare_messages_with_context(ast_flag, collection_name, query, limit)
         
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
         
-        payload = {
-            "model": self.model,
-            "messages": self.prepare_message(messages),
-            "temperature": temperature,
-            **kwargs,
-        }
-
         try:
-            response = requests.post(self.base_url, headers=headers, json=payload)
-            response.raise_for_status()
-            data = response.json()
-
-            return contexts, LLMInterface(
-                content=data["choices"][0]["message"]["content"],
-                candidates=[choice["message"]["content"] for choice in data["choices"]],
-                completion_tokens=data["usage"]["completion_tokens"],
-                total_tokens=data["usage"]["total_tokens"],
-                prompt_tokens=data["usage"]["prompt_tokens"],
+            response_data = self.provider.invoke(
+                messages=self.prepare_message(messages),
+                temperature=temperature,
+                **kwargs
             )
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"OpenAI API request failed: {str(e)}")
+            return contexts, LLMInterface(
+                content=response_data["choices"][0]["message"]["content"],
+                candidates=[choice["message"]["content"] for choice in response_data["choices"]],
+                completion_tokens=response_data["usage"]["completion_tokens"],
+                total_tokens=response_data["usage"]["total_tokens"],
+                prompt_tokens=response_data["usage"]["prompt_tokens"],
+            )
+        except Exception as e:
+            raise Exception(f"LLM request failed: {str(e)}")
 
     def stream(
         self, 
@@ -269,35 +375,15 @@ class ChatLLM:
         """
         messages, contexts = self.prepare_messages_with_context(ast_flag, collection_name, query, limit)
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        
-        payload = {
-            "model": self.model,
-            "messages": self.prepare_message(messages),
-            "temperature": temperature,
-            "stream": True,
-            **kwargs,
-        }
-
         try:
-            with requests.post(self.base_url, headers=headers, json=payload, stream=True) as response:
-                response.raise_for_status()
-                for line in response.iter_lines():
-                    if line:
-                        chunk = line.decode("utf-8").strip()
-                        if chunk.startswith("data: "):
-                            chunk = chunk[6:]
-                            if chunk != "[DONE]":
-                                try:
-                                    chunk_data = json.loads(chunk)
-                                    if chunk_data.get("choices"):
-                                        content = chunk_data["choices"][0].get("delta", {}).get("content")
-                                        if content:
-                                            yield contexts, LLMInterface(content=content)
-                                except json.JSONDecodeError:
-                                    continue
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"OpenAI API streaming request failed: {str(e)}")
+            for chunk_data in self.provider.stream(
+                messages=self.prepare_message(messages),
+                temperature=temperature,
+                **kwargs
+            ):
+                if chunk_data.get("choices"):
+                    content = chunk_data["choices"][0].get("delta", {}).get("content")
+                    if content:
+                        yield contexts, LLMInterface(content=content)
+        except Exception as e:
+            raise Exception(f"LLM streaming request failed: {str(e)}")

@@ -10,6 +10,11 @@ QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 # OpenAI configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+# Azure OpenAI configuration
+AZURE_OPENAI_MODEL = os.getenv("AZURE_OPENAI_MODEL")
+AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+
 # Validate required environment variables
 required_vars = [
     "QDRANT_HOST",
