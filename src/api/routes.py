@@ -9,7 +9,7 @@ from git_repo_parser.base_parser import CodeParser
 from vector_store.chunk_store import ChunkStoreHandler
 from vector_store.retrive_generate import ChatLLM, OpenAIProvider, AzureOpenAIProvider
 from chunking.document_chunks import DocumentChunker
-from evaluation import get_evaluation, EvaluationMetric
+from evaluation import Evaluation, EvaluationMetric
 from config.config import OPENAI_API_KEY, QDRANT_HOST, QDRANT_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_MODEL
 import json
 import os
@@ -207,11 +207,15 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(get_llm)):
             limit=request.limit,
             temperature=0
         )
-        evaluation_metrics = get_evaluation(
+        evaluation_metrics = Evaluation.get_evaluation(
             request=request.query,
             context=contexts,
             response=response.content,
-            metrics=[EvaluationMetric.ANSWER_RELEVANCY]
+            metrics=[
+                EvaluationMetric.ANSWER_RELEVANCY, 
+                EvaluationMetric.FAITHFULNESS,
+                EvaluationMetric.CONTEXT_RELEVANCY,
+            ]
         )
         return {
             "query": request.query,
