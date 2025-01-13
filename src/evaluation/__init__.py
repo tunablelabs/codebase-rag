@@ -1,1 +1,1 @@
-from evaluation.eval import get_evaluation, EvaluationMetric
+from evaluation.eval import Evaluation, EvaluationMetric
