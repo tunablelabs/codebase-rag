@@ -9,6 +9,7 @@ from git_repo_parser.base_parser import CodeParser
 from vector_store.chunk_store import ChunkStoreHandler
 from vector_store.retrive_generate import ChatLLM, OpenAIProvider, AzureOpenAIProvider
 from chunking.document_chunks import DocumentChunker
+from evaluation import Evaluator, LLMMetricType, NonLLMMetricType
 from config.config import OPENAI_API_KEY, QDRANT_HOST, QDRANT_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_MODEL
 import json
 import os
@@ -126,6 +127,21 @@ router = APIRouter()
 # Initialize service
 repo_service = RepositoryStorageService()
 git_clone_service = GitCloneService()
+evaluator = Evaluator(
+    use_llm=True,
+    llm_metrics=[
+        LLMMetricType.ANSWER_RELEVANCY,
+        LLMMetricType.FAITHFULNESS,
+        LLMMetricType.CONTEXT_RELEVANCY
+    ],
+    non_llm_metrics=[
+        NonLLMMetricType.CONTEXT_QUERY_MATCH,
+        NonLLMMetricType.INFORMATION_DENSITY,
+        NonLLMMetricType.ANSWER_COVERAGE,
+        NonLLMMetricType.RESPONSE_CONSISTENCY,
+        NonLLMMetricType.SOURCE_DIVERSITY,
+    ]
+)
 
 class RepoPath(BaseModel):
     path: str
@@ -205,6 +221,11 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(get_llm)):
             query=request.query,
             limit=request.limit,
             temperature=0
+        )
+        evaluation_metrics = evaluator.evaluate(
+            request=request.query,
+            context=contexts,
+            response=response.content,
         )
         return {
             "query": request.query,
