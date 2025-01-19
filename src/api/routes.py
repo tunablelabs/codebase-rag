@@ -224,13 +224,14 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(get_llm)):
         )
         evaluation_metrics = evaluator.evaluate(
             request=request.query,
-            context=contexts,
+            contexts=contexts,
             response=response.content,
         )
         return {
             "query": request.query,
             "contexts": contexts,
-            "response": response.content
+            "response": response.content,
+            "metrics": evaluation_metrics
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
