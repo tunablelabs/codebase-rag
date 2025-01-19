@@ -9,6 +9,7 @@ import json
 import requests
 from datetime import datetime
 from abc import ABC, abstractmethod
+from config.config import OPENAI_API_KEY
 
 # Message Classes for OpenAI Chat Format
 class BaseMessage:
@@ -241,7 +242,7 @@ class ChatLLM:
         try:
             # Str to Bool Conversion
             ast_filter = ast_flag == "True"
-            openai_client = OpenAI(api_key=self.provider.api_key)
+            openai_client = OpenAI(api_key=OPENAI_API_KEY)
             # Get embedding for the query
             query_embedd = openai_client.embeddings.create(
                 model="text-embedding-ada-002",

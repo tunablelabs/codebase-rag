@@ -110,12 +110,12 @@ def get_llm() -> ChatLLM:
     global _llm_instance
     if _llm_instance is None:
         # For OpenAI
-        openai_provider = OpenAIProvider(api_key=OPENAI_API_KEY,model="gpt-4")
+        openai_provider = OpenAIProvider(api_key=OPENAI_API_KEY,model="gpt-4o")
         # For Azure OpenAI
         azure_provider = AzureOpenAIProvider(api_key=AZURE_OPENAI_KEY,endpoint=AZURE_OPENAI_ENDPOINT,deployment_name=AZURE_OPENAI_MODEL)
         # Initialize ChatLLM with required provider
         _llm_instance = ChatLLM(
-            provider = openai_provider,
+            provider = azure_provider,
             qdrant_url=QDRANT_HOST,
             qdrant_api_key=QDRANT_API_KEY
         )
