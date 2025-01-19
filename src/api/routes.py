@@ -1,6 +1,7 @@
+import shutil
 from typing import Optional, List, Dict
 from git import Repo
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Form, HTTPException, Depends, UploadFile, File
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from qdrant_client import QdrantClient
@@ -14,6 +15,7 @@ from config.config import OPENAI_API_KEY, QDRANT_HOST, QDRANT_API_KEY, AZURE_OPE
 import json
 import os
 from pathlib import Path
+
 
 class GitCloneService:
     def __init__(self):
@@ -37,6 +39,34 @@ class GitCloneService:
             
         except Exception as e:
             raise Exception(f"Failed to clone repository: {str(e)}")
+        
+    def folder_upload(self, input_files) -> str:
+        try:                
+            # Get the folder name from the first file's path
+            folder_name = input_files[0].filename.split('/')[0]
+            folder_path = os.path.join(self.base_path, folder_name)
+            
+            # Create the directory
+            os.makedirs(folder_path, exist_ok=True)
+            
+            # Save all files preserving their structure
+            for file in input_files:
+                # Create full file path
+                file_path = os.path.join(self.base_path, file.filename)
+                
+                # Create necessary subdirectories
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                
+                # Save the file
+                with open(file_path, "wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
+            
+            return folder_path
+        
+        except Exception as e:
+            return {"error": str(e)}
+        
+        
         
 class RepositoryStorageService:
     def __init__(self):
@@ -166,13 +196,22 @@ async def get_indexed_project():
         }
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))       
-    
+
+@router.post("/uploadproject")
+async def upload_folder(local_dir: str = Form(...), repo: Optional[str] = Form(None), files: Optional[List[UploadFile]] = File(None)):
+    local_dir_flag = local_dir == "True"
+    if local_dir_flag:
+        project_uploaded_path = git_clone_service.folder_upload(files)
+    else:
+        project_uploaded_path = git_clone_service.clone(repo)
+    return project_uploaded_path 
 
 @router.post("/stats")
 async def analyze_repository(repo: RepoPath):
     try:
-        repo_path = git_clone_service.clone(repo.path)
-        parser = StatsParser(repo_path)
+        if not os.path.exists(repo.path):
+            raise HTTPException(status_code=400, detail="project Not Avilable")
+        parser = StatsParser(repo.path)
         return await parser.get_stats()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -180,8 +219,9 @@ async def analyze_repository(repo: RepoPath):
 @router.post("/storage")
 async def extract_repository(repo: RepoPath):
     try:
-        repo_path = git_clone_service.clone(repo.path)
-        result = repo_service.process_repository(repo_path)
+        if not os.path.exists(repo.path):
+            raise HTTPException(status_code=400, detail="project Not Avilable")
+        result = repo_service.process_repository(repo.path)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

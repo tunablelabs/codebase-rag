@@ -38,23 +38,9 @@ class ChunkStoreHandler:
         Returns:
             str: A formatted collection name suitable for QDrant
         """
-        # Handle both HTTPS and SSH URLs
-        if self.repo_path.startswith('git@'):
-            # Parse SSH URL (git@github.com:username/repo.git)
-            parts = self.repo_path.split(':')
-            if len(parts) != 2:
-                raise ValueError("Invalid SSH Git URL format")
-            path = parts[1]
-        else:
-            # Parse HTTPS URL
-            parsed_url = urlparse(self.repo_path)
-            path = parsed_url.path
-        path = path.replace('.git', '')
-    
-        # Split into components and remove empty strings
-        components = [x for x in path.split('/') if x]
+        components = [x for x in self.repo_path.split('\\') if x]
         # Take the last two components (usually username/org and repo name)
-        name_components = components[-2:]
+        name_components = components[-1:]
         base_name = '-'.join(name_components)
         clean_name = re.sub(r'[^a-z0-9-]+', '_', base_name.lower()).strip('_')
         
