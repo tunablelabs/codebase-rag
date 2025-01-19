@@ -11,6 +11,11 @@ from datetime import datetime
 from abc import ABC, abstractmethod
 from config.config import OPENAI_API_KEY
 
+from .get_local_db import fetch_user_data, check_and_create_table, add_user, update_conversation, user_exists
+
+# checks & creates user localdb if not already
+check_and_create_table()
+
 # Message Classes for OpenAI Chat Format
 class BaseMessage:
     """Base class for all message types."""
@@ -286,7 +291,7 @@ class ChatLLM:
         except Exception as e:
             raise Exception(f"Qdrant query failed: {str(e)}")
 
-    def prepare_messages_with_context(self, ast_flag, collection_name, query: str, limit: int = 5) -> Tuple[list[BaseMessage], list[str]]:
+    def prepare_messages_with_context(self, ast_flag, collection_name, user_id: str, query: str, limit: int = 5) -> Tuple[list[BaseMessage], list[str]]:
         """
         Prepare messages with context for the LLM.
         
@@ -297,19 +302,35 @@ class ChatLLM:
         Returns:
             Tuple[list[BaseMessage], list[str]]: Prepared messages and raw contexts
         """
+        
+        if user_exists(user_id):
+            user_context = fetch_user_data(user_id)['context_window']
+        else:
+            add_user(user_id)
+            user_context = None
+        
         contexts = self.get_context_from_qdrant(ast_flag, collection_name, query, limit)
         
-        system_prompt = """You're assisting a user who has a question based on the documentation.
-        Address their query using relevant information from the documentation.
-        If the query is general (e.g., "hi"), respond normally without using the context.
-        For specific queries, use the context to provide accurate information.
-        Reference relevant sources to support your answer.
-        If you cannot find the answer in the context, respond with "I don't know"."""
-
+        system_prompt =  """You're assisting a user who has a question based on the documentation.
+            Your goal is to provide a clear and concise response that addresses their query while referencing relevant information
+            from the documentation.
+            Remember to:
+            - Understand the user's question thoroughly.
+            - If the user's query is general (e.g., "hi," "good morning"),
+              greet them normally and avoid using the context from the documentation.
+            - If the user's query is specific and related to the documentation, locate and extract the pertinent information.
+            - Craft a response that directly addresses the user's query and provides accurate information
+              referring to the relevant source and page from the 'source' field of fetched context from the documentation to support your answer.
+            - Use a friendly and professional tone in your response.
+            - If you cannot find the answer in the provided context, do not pretend to know it.
+              Instead, respond with "I don't know".
+            
+            Context:\n"""
+            
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content="Context:\n" + "\n\n---\n\n".join(contexts)),
-            HumanMessage(content=f"Question: {query}")
+            HumanMessage(content="Context:\n" + "\n\n---\n\n".join(contexts)+"\n\n---\n\n".join(user_context)),
+            HumanMessage(content=f"Question: {query}\nAnswer:")
         ]
         return messages, contexts
 
@@ -317,6 +338,7 @@ class ChatLLM:
         self, 
         ast_flag,
         collection_name,
+        user_id: str,
         query: str, 
         limit: int = 5, 
         temperature: float = 0, 
@@ -334,7 +356,7 @@ class ChatLLM:
         Returns:
             Tuple[list[str], LLMInterface]: Contexts and LLM response
         """
-        messages, contexts = self.prepare_messages_with_context(ast_flag, collection_name, query, limit)
+        messages, contexts = self.prepare_messages_with_context(ast_flag, collection_name, user_id, query, limit)
         
         
         try:
@@ -343,6 +365,8 @@ class ChatLLM:
                 temperature=temperature,
                 **kwargs
             )
+            llm_response = response_data["choices"][0]["message"]["content"]
+            update_conversation(user_id, question=query , answer=llm_response, turn=3)
             return contexts, LLMInterface(
                 content=response_data["choices"][0]["message"]["content"],
                 candidates=[choice["message"]["content"] for choice in response_data["choices"]],

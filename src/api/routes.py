@@ -163,6 +163,7 @@ class RepoPath(BaseModel):
     
 class QueryRequest(RepoPath):
     """Request model for querying the code"""
+    user_id: str
     ast_flag: str
     query: str
     limit: int = 3
@@ -238,11 +239,13 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(get_llm)):
         dict: Query results with contexts and response
     """
     try:
-        repo_path = git_clone_service.clone(request.path)
-        collection_info = ChunkStoreHandler(repo_path)
+        if not os.path.exists(request.path):
+            raise HTTPException(status_code=400, detail="project Not Avilable")
+        collection_info = ChunkStoreHandler(request.path)
         contexts, response = llm.invoke(
             request.ast_flag,
             collection_name = collection_info.collection_name,
+            user_id=request.user_id,
             query=request.query,
             limit=request.limit,
             temperature=0
@@ -278,8 +281,9 @@ async def query_code_stream(request: QueryRequest, llm: ChatLLM = Depends(get_ll
         StreamingResponse: Stream of query results
     """
     try:
-        repo_path = git_clone_service.clone(request.path)
-        collection_info = ChunkStoreHandler(repo_path)
+        if not os.path.exists(request.path):
+            raise HTTPException(status_code=400, detail="project Not Avilable")
+        collection_info = ChunkStoreHandler(request.path)
         async def generate():
             for contexts, partial_response in llm.stream(
                 request.ast_flag,
@@ -303,8 +307,9 @@ async def query_code_stream(request: QueryRequest, llm: ChatLLM = Depends(get_ll
     
 @router.post("/reindex")
 async def reindex_vectoredb(repo: RepoPath):
-    repo_path = git_clone_service.clone(repo.path)
-    chunkhandler = ChunkStoreHandler(repo_path)
+    if not os.path.exists(repo.path):
+            raise HTTPException(status_code=400, detail="project Not Avilable")
+    chunkhandler = ChunkStoreHandler(repo.path)
     collection_name = chunkhandler.collection_name
     client = chunkhandler.client
     try:
@@ -312,7 +317,7 @@ async def reindex_vectoredb(repo: RepoPath):
         if collection_name:
             client.delete_collection(collection_name=collection_name)
         try:
-            result = repo_service.process_repository(repo_path)
+            result = repo_service.process_repository(repo.path)
             return result
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
