@@ -381,6 +381,7 @@ class ChatLLM:
         self, 
         ast_flag,
         collection_name,
+        user_id: str,
         query: str, 
         limit: int = 5, 
         temperature: float = 0, 
@@ -398,7 +399,7 @@ class ChatLLM:
         Yields:
             Tuple[list[str], LLMInterface]: Contexts and partial LLM response
         """
-        messages, contexts = self.prepare_messages_with_context(ast_flag, collection_name, query, limit)
+        messages, contexts = self.prepare_messages_with_context(ast_flag, collection_name, user_id, query, limit)
 
         try:
             for chunk_data in self.provider.stream(
