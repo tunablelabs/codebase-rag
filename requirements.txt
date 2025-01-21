@@ -2,7 +2,7 @@ fastapi==0.115.6
 GitPython==3.1.44
 qdrant-client==1.13.0
 transformers==4.48.1
-tree-sitter==0.24.0
+tree-sitter==0.20.1
 python-dotenv==1.0.1
 torch==2.5.1
 openai==1.59.9

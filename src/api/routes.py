@@ -110,17 +110,16 @@ class RepositoryStorageService:
 
             # Process code and document chunks
             code_chunks = self._process_code_chunks(repo_path)
-            print(code_chunks)
             doc_chunks = self._process_doc_chunks(repo_path)
 
             # Store chunks
-            success_code = self._store_chunks(chunk_store, code_chunks)
-            print(success_code)
-            success_doc = self._store_chunks(chunk_store, doc_chunks)
-            print(success_doc)
-
-            if not success_code or not success_doc:
-                raise Exception("Failed to store chunks in vector database")
+            if code_chunks:
+                success_code = self._store_chunks(chunk_store, code_chunks)
+            if doc_chunks:
+                success_doc = self._store_chunks(chunk_store, doc_chunks)
+    
+            if not success_code and not success_doc:
+                raise Exception("Failed to store chunks in vector database, Mostly Repo is empty")
 
             return {
                 "status": "success",
