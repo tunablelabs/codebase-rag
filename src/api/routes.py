@@ -1,190 +1,20 @@
-import shutil
-from typing import Optional, List, Dict
+from datetime import datetime
+from typing import Optional, List
+import uuid
 from git import Repo
 from fastapi import APIRouter, Form, HTTPException, Depends, UploadFile, File
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse, StreamingResponse
 from qdrant_client import QdrantClient
 from git_repo_parser.stats_parser import StatsParser
-from git_repo_parser.base_parser import CodeParser
 from vector_store.chunk_store import ChunkStoreHandler
-from vector_store.retrive_generate import ChatLLM, OpenAIProvider, AzureOpenAIProvider
-from chunking.document_chunks import DocumentChunker
-from evaluation import Evaluator, LLMMetricType, NonLLMMetricType
-from config.config import OPENAI_API_KEY, QDRANT_HOST, QDRANT_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_MODEL
+from vector_store.retrive_generate import ChatLLM
+from config.config import QDRANT_HOST, QDRANT_API_KEY
 import json
 import os
-from pathlib import Path
-
-
-class GitCloneService:
-    def __init__(self):
-        # Get project root directory (2 levels up from current file)
-        current_file = Path(__file__).resolve()
-        project_root = current_file.parent.parent.parent
-        self.base_path = os.path.join(project_root, "project_repos")
-        os.makedirs(self.base_path, exist_ok=True)
-    
-    def clone(self, repo_url: str) -> str:
-        try:
-            # Extract repo name from URL
-            repo_name = repo_url.split('/')[-1].replace('.git', '')
-            repo_path = os.path.join(self.base_path, repo_name)
-            if os.path.exists(repo_path):
-                return repo_path
-                
-            # Clone repository
-            Repo.clone_from(repo_url, repo_path)
-            return repo_path
-            
-        except Exception as e:
-            raise Exception(f"Failed to clone repository: {str(e)}")
-        
-    def folder_upload(self, input_files) -> str:
-        try:                
-            # Get the folder name from the first file's path
-            folder_name = input_files[0].filename.split('/')[0]
-            folder_path = os.path.join(self.base_path, folder_name)
-            
-            # Create the directory
-            os.makedirs(folder_path, exist_ok=True)
-            
-            # Save all files preserving their structure
-            for file in input_files:
-                # Create full file path
-                file_path = os.path.join(self.base_path, file.filename)
-                
-                # Create necessary subdirectories
-                os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                
-                # Save the file
-                with open(file_path, "wb") as buffer:
-                    shutil.copyfileobj(file.file, buffer)
-            
-            return folder_path
-        
-        except Exception as e:
-            return {"error": str(e)}
-        
-        
-        
-class RepositoryStorageService:
-    def __init__(self):
-        self.code_parser = CodeParser()
-        self.doc_chunker = DocumentChunker()
-
-    def _create_chunk_store(self, repo_path: str) -> ChunkStoreHandler:
-        """Initialize chunk store for the repository"""
-        try:
-            return ChunkStoreHandler(repo_path)
-        except Exception as e:
-            raise Exception(f"Failed to initialize chunk store: {str(e)}")
-
-    def _process_code_chunks(self, repo_path: str) -> List[Dict]:
-        """Process and parse code files"""
-        try:
-            return self.code_parser.parse_directory(repo_path)
-        except Exception as e:
-            raise Exception(f"Failed to process code files: {str(e)}")
-
-    def _process_doc_chunks(self, repo_path: str) -> List[Dict]:
-        """Process and parse document files"""
-        try:
-            return self.doc_chunker.parse_directory(repo_path)
-        except Exception as e:
-            raise Exception(f"Failed to process document files: {str(e)}")
-
-    def _store_chunks(self, chunk_store: ChunkStoreHandler, 
-                     chunks: List[Dict]) -> bool:
-        """Store chunks in vector database"""
-        try:
-            return chunk_store.store_chunks(chunks)
-        except Exception as e:
-            raise Exception(f"Failed to store chunks: {str(e)}")
-
-    def process_repository(self, repo_path: str) -> Dict:
-        """Main method to process and store repository data"""
-        try:
-            # Initialize chunk store
-            chunk_store = self._create_chunk_store(repo_path)
-
-            # Process code and document chunks
-            code_chunks = self._process_code_chunks(repo_path)
-            doc_chunks = self._process_doc_chunks(repo_path)
-
-            # Store chunks
-            if code_chunks:
-                success_code = self._store_chunks(chunk_store, code_chunks)
-            if doc_chunks:
-                success_doc = self._store_chunks(chunk_store, doc_chunks)
-    
-            if not success_code and not success_doc:
-                raise Exception("Failed to store chunks in vector database, Mostly Repo is empty")
-
-            return {
-                "status": "success",
-                "chunks_processed": len(code_chunks) + len(doc_chunks),
-                "repository": repo_path
-            }
-
-        except Exception as e:
-            raise Exception(f"Repository processing failed: {str(e)}")
-
-
-# Initialize ChatLLM as a module-level singleton
-_llm_instance = None
-
-def get_llm() -> ChatLLM:
-    """
-    Dependency injection function to get or create ChatLLM instance.
-    Uses singleton pattern to ensure only one instance exists.
-    """
-    global _llm_instance
-    if _llm_instance is None:
-        # For OpenAI
-        openai_provider = OpenAIProvider(api_key=OPENAI_API_KEY,model="gpt-4o")
-        # For Azure OpenAI
-        azure_provider = AzureOpenAIProvider(api_key=AZURE_OPENAI_KEY,endpoint=AZURE_OPENAI_ENDPOINT,deployment_name=AZURE_OPENAI_MODEL)
-        # Initialize ChatLLM with required provider
-        _llm_instance = ChatLLM(
-            provider = azure_provider,
-            qdrant_url=QDRANT_HOST,
-            qdrant_api_key=QDRANT_API_KEY
-        )
-    return _llm_instance
+from .utils import *
 
 
 router = APIRouter()
-
-# Initialize service
-repo_service = RepositoryStorageService()
-git_clone_service = GitCloneService()
-evaluator = Evaluator(
-    use_llm=True,
-    llm_metrics=[
-        LLMMetricType.ANSWER_RELEVANCY,
-        LLMMetricType.FAITHFULNESS,
-        LLMMetricType.CONTEXT_RELEVANCY
-    ],
-    non_llm_metrics=[
-        NonLLMMetricType.CONTEXT_QUERY_MATCH,
-        NonLLMMetricType.INFORMATION_DENSITY,
-        NonLLMMetricType.ANSWER_COVERAGE,
-        NonLLMMetricType.RESPONSE_CONSISTENCY,
-        NonLLMMetricType.SOURCE_DIVERSITY,
-    ]
-)
-
-class RepoPath(BaseModel):
-    path: str
-    
-class QueryRequest(RepoPath):
-    """Request model for querying the code"""
-    user_id: str
-    ast_flag: str
-    query: str
-    limit: int = 3
-    
 
 @router.get("/healthcheck")
 async def health_check():
@@ -213,33 +43,120 @@ async def get_indexed_project():
             "project_list" : repo_index_list
         }
     except Exception as e:
-        raise HTTPException(status_code=503, detail=str(e))       
+        raise HTTPException(status_code=503, detail=str(e))   
+    
+    
+@router.get("/create/chat")
+async def create_chat() -> Dict:
+    try:
+        chat_history_path = get_chat_history_class.base_path
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_id = uuid.uuid4().hex[:9]
+        file_path = os.path.join(chat_history_path, f"{file_id}.json")
+        
+        while os.path.exists(file_path):
+            file_id = uuid.uuid4().hex[:9]
+            file_path = os.path.join(chat_history_path, f"{file_id}.json")
+
+        data = {
+            "created_at": timestamp,
+            "last_updated": timestamp,
+            "repo_name": "",
+            "chat": []
+        }
+
+        with open(file_path, "w") as f:
+            json.dump(data, f, indent=2)
+        
+        return  {"success": True}  
+    
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=str(e)) 
+
+
+@router.get("/chat/history")
+async def get_chat_history() -> List[Dict]:
+   try:
+       chat_history_path = get_chat_history_class.base_path
+       chat_files = Path(chat_history_path).glob("*")
+       chats = []
+       
+       for file_path in chat_files:
+           with open(file_path) as f:
+               chat_data = json.load(f)
+               
+           chat_preview = ""
+           if chat_data.get("chat"):
+               last_msg = str(chat_data["chat"][-1].get("user", "")).split("\n")[-1]
+               chat_preview = last_msg[:10]
+           
+           chats.append({
+               "file_id": file_path.stem,
+               "last_message_preview": chat_preview,
+               "last_updated": chat_data["last_updated"] # Used only for sorting
+           })
+       
+       sorted_chats = sorted(chats, key=lambda x: x["last_updated"], reverse=True)[:10]
+       return [{"file_id": chat["file_id"], "last_message_preview": chat["last_message_preview"]} 
+               for chat in sorted_chats]
+
+   except Exception as e:
+       raise HTTPException(status_code=500, detail=str(e))
+   
+   
+@router.get("/chat/history/{file_id}")
+async def get_chat(file_id: str):
+    try:
+        chat_history_path = get_chat_history_class.base_path
+        file_path = os.path.join(chat_history_path, f"{file_id}.json")
+        with open(file_path, "r") as f:
+            chat_data = json.load(f)
+        return chat_data["chat"]
+        l
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Chat not found")
+       
 
 @router.post("/uploadproject")
-async def upload_folder(local_dir: str = Form(...), repo: Optional[str] = Form(None), files: Optional[List[UploadFile]] = File(None)):
-    local_dir_flag = local_dir == "True"
-    if local_dir_flag:
-        project_uploaded_path = git_clone_service.folder_upload(files)
-    else:
-        project_uploaded_path = git_clone_service.clone(repo)
-    return project_uploaded_path 
+async def upload_folder(file_id: str = Form(...), local_dir: str = Form(...), repo: Optional[str] = Form(None), files: Optional[List[UploadFile]] = File(None)):
+    try:
+        local_dir_flag = local_dir == "True"
+        if local_dir_flag:
+            project_name = git_clone_service.folder_upload(files)
+        else:
+            project_name = git_clone_service.clone(repo)
+        await update_project_name(file_id, project_name)
+        
+        return {"success": True}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
 
 @router.post("/stats")
-async def analyze_repository(repo: RepoPath):
+async def analyze_repository(repo: FileID):
     try:
-        if not os.path.exists(repo.path):
+        chat_history_path = get_chat_history_class.base_path
+        file_name = os.path.join(chat_history_path, f"{repo.file_id}.json")
+        project_path, _ = get_project_path(file_name)
+        if not os.path.exists(project_path):
             raise HTTPException(status_code=400, detail="project Not Avilable")
-        parser = StatsParser(repo.path)
+        print(project_path)
+        parser = StatsParser(project_path)
         return await parser.get_stats()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/storage")
-async def extract_repository(repo: RepoPath):
+async def extract_repository(repo: FileID):
     try:
-        if not os.path.exists(repo.path):
+        chat_history_path = get_chat_history_class.base_path
+        file_name = os.path.join(chat_history_path, f"{repo.file_id}.json")
+        project_path, _ = get_project_path(file_name)
+        if not os.path.exists(project_path):
             raise HTTPException(status_code=400, detail="project Not Avilable")
-        result = repo_service.process_repository(repo.path)
+        result = repo_service.process_repository(project_path)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -256,25 +173,31 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(get_llm)):
         dict: Query results with contexts and response
     """
     try:
-        if not os.path.exists(request.path):
+        chat_history_path = get_chat_history_class.base_path
+        file_name = os.path.join(chat_history_path, f"{request.file_id}.json")
+        project_path, _ = get_project_path(file_name)
+        
+        if not os.path.exists(project_path):
             raise HTTPException(status_code=400, detail="project Not Avilable")
-        collection_info = ChunkStoreHandler(request.path)
+        collection_info = ChunkStoreHandler(project_path)
         contexts, response = llm.invoke(
             request.ast_flag,
             collection_name = collection_info.collection_name,
-            user_id=request.user_id,
+            user_id=request.file_id,
             query=request.query,
             limit=request.limit,
             temperature=0
         )
         evaluation_metrics = evaluator.evaluate(
+            use_llm = request.use_llm == "True",
             request=request.query,
             contexts=contexts,
             response=response.content,
         )
+        await update_chat_data(request.file_id, request.query, response.content)
         return {
             "query": request.query,
-            "contexts": contexts,
+            # "contexts": contexts,
             "response": response.content,
             "metric": evaluation_metrics
         }
@@ -318,10 +241,13 @@ async def query_code_stream(request: QueryRequest, llm: ChatLLM = Depends(get_ll
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/reindex")
-async def reindex_vectoredb(repo: RepoPath):
-    if not os.path.exists(repo.path):
+async def reindex_vectoredb(repo: FileID):
+    chat_history_path = get_chat_history_class.base_path
+    file_name = os.path.join(chat_history_path, f"{repo.file_id}.json")
+    project_path, _ = get_project_path(file_name)
+    if not os.path.exists(project_path):
             raise HTTPException(status_code=400, detail="project Not Avilable")
-    chunkhandler = ChunkStoreHandler(repo.path)
+    chunkhandler = ChunkStoreHandler(project_path)
     collection_name = chunkhandler.collection_name
     client = chunkhandler.client
     try:
@@ -329,7 +255,7 @@ async def reindex_vectoredb(repo: RepoPath):
         if collection_name:
             client.delete_collection(collection_name=collection_name)
         try:
-            result = repo_service.process_repository(repo.path)
+            result = repo_service.process_repository(project_path)
             return result
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))

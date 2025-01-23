@@ -8,3 +8,4 @@ logs/
 node_modules/
 project_repos/
 local_user_database.db
+chat_history/
