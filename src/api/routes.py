@@ -68,7 +68,7 @@ async def create_chat() -> Dict:
         with open(file_path, "w") as f:
             json.dump(data, f, indent=2)
         
-        return  {"success": True}  
+        return  {"success": True, "file_id":file_id}  
     
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e)) 
