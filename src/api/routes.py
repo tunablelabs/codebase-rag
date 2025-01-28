@@ -179,6 +179,7 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(get_llm)):
         
         if not os.path.exists(project_path):
             raise HTTPException(status_code=400, detail="project Not Avilable")
+        
         collection_info = ChunkStoreHandler(project_path)
         contexts, response = llm.invoke(
             request.ast_flag,
