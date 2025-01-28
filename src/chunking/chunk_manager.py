@@ -5,6 +5,7 @@ import logging
 from .strategies import ChunkInfo
 from .language_specific_chunk.python_chunker import PythonChunker
 from .language_specific_chunk.javascript_chunker import JavaScriptChunker
+from .language_specific_chunk.typescript_chunker import TypeScriptChunker
 from .language_specific_chunk.java_chunker import JavaChunker
 
 class ChunkManager:
@@ -20,7 +21,9 @@ class ChunkManager:
         self.LANGUAGE_MAPPING = {
         '.py': ('python', PythonChunker),
         '.js': ('javascript', JavaScriptChunker),
-        '.java': ('java', JavaChunker)
+        '.java': ('java', JavaChunker),
+        '.ts': ('typescript', TypeScriptChunker),
+        '.tsx': ('typescript', TypeScriptChunker),
         }
         self.logger = logging.getLogger(self.__class__.__name__)
         self.parsers = parsers  # Store the parsers

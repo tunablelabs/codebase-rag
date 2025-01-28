@@ -12,6 +12,7 @@ from .base_types import (
 from .language_specific_parsing.java_parser import JavaParser
 from .language_specific_parsing.javascript_parser import JavaScriptParser
 from .language_specific_parsing.python_parser import PythonParser
+from .language_specific_parsing.typescript_parser import TypeScriptParser
 from chunking.chunk_manager import ChunkManager
 from chunking.strategies import ChunkInfo
 
@@ -22,7 +23,9 @@ class CodeParser:
         self.LANGUAGE_MAPPING = {
         '.py': ('python', PythonParser),
         '.js': ('javascript', JavaScriptParser),
-        '.java': ('java', JavaParser)
+        '.java': ('java', JavaParser),
+        '.ts': ('typescript', TypeScriptParser),
+        '.tsx': ('typescript', TypeScriptParser)
         }
         self.logger = logging.getLogger(__name__)
         self.base_path = Path(__file__).parent.parent.parent / "tree_sitter_libs"
