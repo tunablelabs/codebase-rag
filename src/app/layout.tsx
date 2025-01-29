@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -5,12 +6,26 @@ import Link from "next/link";
 import NavLink from "@/app/NavLink";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { ColorSchemeScript } from '@mantine/core';
+=======
+
+import { SessionProvider } from "@/context/SessionProvider";
+import type { Metadata } from "next";
+import localFont from "next/font/local";
+import "./globals.css";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+
+>>>>>>> CodebaseRag-ui-updates
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
   weight: "100 900",
 });
+<<<<<<< HEAD
+=======
+
+>>>>>>> CodebaseRag-ui-updates
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
@@ -19,7 +34,12 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Code RAG Assistant",
+<<<<<<< HEAD
   description: "Quickstart",
+=======
+  description: "AI-powered code analysis and chat assistant",
+  keywords: "code analysis, AI assistant, development tools",
+>>>>>>> CodebaseRag-ui-updates
 };
 
 export default function RootLayout({
@@ -28,6 +48,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+<<<<<<< HEAD
     <html lang="en" className="h-full">
 
       <head>
@@ -74,6 +95,27 @@ export default function RootLayout({
             </Link>
           </div>
         </footer>
+=======
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <body
+        className={`
+          ${geistSans.variable} 
+          ${geistMono.variable} 
+          flex min-h-full flex-col 
+          bg-gradient-to-br from-base-100 to-base-200
+          text-base-content
+          antialiased
+          transition-colors duration-200
+        `}
+      >
+        <SessionProvider>
+          <Header />
+          <main className="flex-grow flex-col px-4 py-6">
+            {children}
+          </main>
+          <Footer />
+        </SessionProvider>
+>>>>>>> CodebaseRag-ui-updates
       </body>
     </html>
   );
