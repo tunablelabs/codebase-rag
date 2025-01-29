@@ -27,8 +27,8 @@ export function useChat(options: ChatOptions): ChatHookReturn {
     try {
       const queryResponse = await api.queryRepository({
         file_id: options.sessionId,
-        use_llm: true,
-        ast_flag: options.astFlag,
+        use_llm: "False",
+        ast_flag: "True",
         query: content,
         limit: 3
       });

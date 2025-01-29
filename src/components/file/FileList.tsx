@@ -2,6 +2,7 @@ interface FileListProps {
   visible: boolean;
   files: string[];
 }
+//  {stats && <pre>{JSON.stringify(stats, null, 2)}</pre>}
 
 export function FileListComponent({ visible, files }: FileListProps) {
   if (!visible || files.length === 0) {
@@ -10,8 +11,9 @@ export function FileListComponent({ visible, files }: FileListProps) {
 
   return (
     <div className="space-y-2 bg-white/70 p-4 rounded-lg shadow-lg backdrop-blur-sm dark:bg-slate-900/70">
+    
       <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">
-        Repository Files
+        Repository Folders
       </h3>
       <ul className="space-y-2">
         {files.map((file, index) => (

@@ -26,6 +26,7 @@ export interface ChatOptions {
   astFlag: boolean;
   forceReindex: boolean;
   sessionId?: string;
+  llmEvaluator?: boolean;
 }
 
 // API Response types
@@ -35,6 +36,15 @@ export interface CreateSessionResponse extends BaseApiResponse {
 
 export interface UploadResponse extends BaseApiResponse {
   message?: string;
+}
+
+export interface UploadStats extends BaseApiResponse {
+  stats: {
+    total_code_files: number;
+    language_distribution: {
+    [language: string]: string; // For example: {"Python": "100%"}
+  };
+  }
 }
 
 // repository and file handling types
@@ -62,8 +72,8 @@ export interface FileUploadOptions {
 // query related types
 export interface QueryRequest {
   file_id: string;
-  use_llm: boolean;
-  ast_flag: boolean;
+  use_llm: string;
+  ast_flag: string;
   query: string;
   limit: number;
 }

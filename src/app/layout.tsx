@@ -1,8 +1,11 @@
+
+import { SessionProvider } from "@/context/SessionProvider";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -40,11 +43,13 @@ export default function RootLayout({
           transition-colors duration-200
         `}
       >
-        <Header />
-        <main className="flex-grow flex-col px-4 py-6">
-          {children}
-        </main>
-        <Footer />
+        <SessionProvider>
+          <Header />
+          <main className="flex-grow flex-col px-4 py-6">
+            {children}
+          </main>
+          <Footer />
+        </SessionProvider>
       </body>
     </html>
   );

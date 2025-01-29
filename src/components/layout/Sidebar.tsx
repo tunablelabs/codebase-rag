@@ -1,14 +1,21 @@
 import { Session } from "@/types";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FolderUp, Plus, X } from 'lucide-react';
+//import { useSession } from "@/hooks/useSession";
+import { useSessionContext } from "@/context/SessionProvider";
+import { useFileUpload } from "@/hooks/useFileUpload"
+import { useGithubUrl } from "@/hooks/useGithubUrl"
+
+interface Stats {
+  total_code_files: number;
+  language_distribution: {
+    [language: string]: string; 
+  };
+}
 
 interface SidebarProps {
-  sessions: Session[];
-  currentSessionId: string | null;
-  onCreateSession: (name: string, githubUrl: string) => Promise<Session>;
-  onSessionSelect: (id: string) => void;
   onFileUpload: (files: FileList) => void;
-  setGithubUrl: (url: string) => void;
+  handlestatsUpload: (stats: Stats) =>void;
 }
 
 declare module 'react' {
@@ -18,31 +25,95 @@ declare module 'react' {
 }
 
 export default function Sidebar({
-  sessions,
-  currentSessionId,
-  onCreateSession,
-  onSessionSelect,
   onFileUpload,
-  setGithubUrl,
+  handlestatsUpload
 }: SidebarProps) {
+  const { sessions, currentSessionId, createSession, setCurrentSessionId } = useSessionContext();
+  const { uploadFiles, sessionIdf } = useFileUpload()
+  const { uploadUrl, sessionId } = useGithubUrl()
   const [isInputVisible, setInputVisible] = useState(false);
   const [newSessionName, setNewSessionName] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [githubUrl, setGithubUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  
+  useEffect(() => {
+    if (sessionId) {
+      console.log("Session ID updated:", sessionId);
+      createSession(newSessionName,sessionId);
+      setNewSessionName("");
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (sessionIdf) {
+      console.log("Session ID updated:", sessionIdf);
+      createSession(newSessionName,sessionIdf);
+      setNewSessionName("");
+    }
+  }, [sessionIdf]);
+
+ 
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
     if (!selectedFiles) return;
-
+    setSelectedFiles(selectedFiles);
     const folderPath = selectedFiles[0].webkitRelativePath.split("/")[0];
     setNewSessionName(folderPath);
-    setGithubUrl(folderPath);
     onFileUpload(selectedFiles);
+  };
+
+  const handleUrlChange = async (url : string) => {
+    setNewSessionName(url);
+    setGithubUrl(url);
+    //uploadUrl(url);
+  };
+
+  const extractRepoName = (githubUrl: string) => {
+    const regex = /github\.com\/([^\/]+)\/([^\/]+)(\.git)?/;
+    const match = githubUrl.match(regex);
+    return match ? match[2] : '';
   };
 
   const handleCreateSession = async () => {
     if (newSessionName) {
-      await onCreateSession(newSessionName, newSessionName);
-      setNewSessionName("");
-      setInputVisible(false);
+
+      setIsUploading(true);
+      
+      try
+      {
+        if (githubUrl) {
+          let newses= extractRepoName(githubUrl)
+          setNewSessionName(newses)
+          let stats = await uploadUrl(githubUrl); // Upload GitHub repo only when button is clicked
+          handlestatsUpload(stats.stats);
+          
+        } else if (selectedFiles) {
+          let stats = await uploadFiles(selectedFiles); 
+          console.log('session_fromfiles',stats.stats);
+          handlestatsUpload(stats.stats);
+          //createSession(newSessionName,ses_name);
+          //setNewSessionName("");
+       
+        }
+      
+        setGithubUrl("");
+        setSelectedFiles(null);
+        setInputVisible(false);
+        setIsUploading(false);
+      }
+      catch (err) {
+        alert("I can only parse python, Java and Javascript files");
+        throw err;
+      }
+      finally {
+        setGithubUrl("");
+        setSelectedFiles(null);
+        setInputVisible(false);
+        setIsUploading(false);
+      }
+      
     }
   };
 
@@ -73,9 +144,14 @@ export default function Sidebar({
               <input
                 type="text"
                 value={newSessionName}
-                onChange={(e) => setNewSessionName(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setNewSessionName(value);  // Update the state with the input value
+                  handleUrlChange(value); 
+                }}
                 className="input input-bordered w-full"
                 placeholder="Enter the Github Repository URL"
+                disabled={isUploading}
               />
 
               <div className="flex flex-col sm:flex-row gap-4">
@@ -85,6 +161,7 @@ export default function Sidebar({
                     webkitdirectory="true"
                     onChange={handleFileChange}
                     className="hidden"
+                    disabled={isUploading}
                   />
                   <div className="btn btn-secondary w-full flex items-center justify-center gap-2">
                     <FolderUp className="w-5 h-5" />
@@ -96,8 +173,31 @@ export default function Sidebar({
                   <button
                     onClick={handleCreateSession}
                     className="btn btn-primary flex-1"
+                    disabled={isUploading}
                   >
-                    Create Session
+                      {isUploading ? (
+                        <>
+                          <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="none"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v4l4-4-4-4v4a8 8 0 00-8 8z"
+                            />
+                          </svg>
+                          Uploading...
+                        </>
+                      ) : (
+                        "Create Session"
+                      )}
                   </button>
 
                   <button
@@ -117,7 +217,7 @@ export default function Sidebar({
         {sessions.map((session) => (
           <button
             key={session.id}
-            onClick={() => onSessionSelect(session.id)}
+            onClick={() => setCurrentSessionId(session.id)}
             className={`w-full px-4 py-3 rounded-lg transition-all text-left group
               ${currentSessionId === session.id
                 ? 'bg-primary/10 text-primary hover:bg-primary/20'

@@ -1,11 +1,21 @@
 import { FormEvent, useState } from "react";
 import { FileListComponent } from "../file/FileList";
+import ShowStats from "../file/ShowStats"
 import { ChatOptions, Session } from "@/types";
 import { Settings, Send, ChevronUp, ChevronDown } from 'lucide-react';
+
+interface Stats {
+  total_code_files: number;
+  language_distribution: {
+    [language: string]: string; // For example: {"Python": "100%"}
+  };
+}
 
 interface MainContentProps {
   currentSession: Session | null;
   isFilesVisible: boolean;
+  isStatsVisible: boolean;
+  stats: Stats;
   files: string[];
   isPending: boolean;
   chatOptions: ChatOptions;
@@ -14,11 +24,14 @@ interface MainContentProps {
   onResetPrompt: () => void;
   onAstChange: () => void;
   onForceReindexChange: () => void;
+  onLlmEvaluator: () => void;
 }
 
 export default function MainContent({
   currentSession,
   isFilesVisible,
+  isStatsVisible,
+  stats,
   files,
   isPending,
   chatOptions,
@@ -27,6 +40,7 @@ export default function MainContent({
   onResetPrompt,
   onAstChange,
   onForceReindexChange,
+  onLlmEvaluator,
 }: MainContentProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -49,11 +63,25 @@ export default function MainContent({
                         <pre className={`whitespace-pre-wrap p-3 rounded-lg shadow-sm transition-all max-w-[80%] ${
                           msg.type === "user" 
                             ? "bg-primary text-primary-content" 
-                            : "bg-base-100 dark:bg-base-200 text-base-content"
+                            : "bg-base-100 dark:bg-base-200 text-base-content relative group"
                         }`}>
                           {msg.text}
                         </pre>
-                      </div>
+
+                        {/* Metrics Tooltip (Only for bot responses) */}
+                        {msg.type === "bot" && msg.metric &&(
+                            <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-sm text-sm">
+                              <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Response Metrics</h4>
+                              <ul className="space-y-1 text-gray-600 dark:text-gray-400">
+                                {Object.entries(msg.metric).map(([key, value]) => (
+                                  <li key={key}>
+                                    <b>{key}:</b> {typeof value === 'object' && value !== null ? value.score?.toFixed(2) : JSON.stringify(value)}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                    </div>
                     ))}
                   </div>
                 ) : (
@@ -123,6 +151,16 @@ export default function MainContent({
                         />
                         <span className="text-sm text-base-content/80">Force Reindex</span>
                       </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={chatOptions.llmEvaluator}
+                          onChange={onLlmEvaluator}
+                          className="checkbox checkbox-primary checkbox-sm"
+                        />
+                        <span className="text-sm text-base-content/80">LLM Evaluator</span>
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -179,7 +217,12 @@ export default function MainContent({
       <div className="w-72 p-4 border-l border-base-300 dark:border-base-700">
         {isFilesVisible && (
           <FileListComponent visible={isFilesVisible} files={files} />
+
         )}
+
+         {/* Show stats below FileListComponent  */ }
+         {isStatsVisible && <ShowStats stats={stats} />}
+        
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 
+import { QueryMetrics } from "@/types/index";
 interface Session {
   id: string;
   name: string;
@@ -7,6 +8,7 @@ interface Session {
     type: 'user' | 'bot';
     text: string;
     timestamp: string;
+    metric?: QueryMetrics;
   }>;
   createdAt: string;
   lastActive: string;
@@ -19,9 +21,9 @@ export function useSession() {
 
   const currentSession = sessions.find(s => s.id === currentSessionId);
 
-  const createSession = useCallback((name: string) => {
+  const createSession = useCallback((name: string, id: string) => {
     const newSession: Session = {
-      id: Date.now().toString(),
+      id: id,
       name,
       messages: [],
       createdAt: new Date().toISOString(),
@@ -53,7 +55,7 @@ export function useSession() {
 
   const addMessageToSession = useCallback((
     sessionId: string,
-    message: { type: 'user' | 'bot'; text: string; }
+    message: { type: 'user' | 'bot'; text: string; metric?: Metric}
   ) => {
     setSessions(prev => prev.map(session => {
       if (session.id === sessionId) {
@@ -80,5 +82,6 @@ export function useSession() {
     deleteSession,
     setCurrentSessionId,
     addMessageToSession,
+    setSessions
   };
 }

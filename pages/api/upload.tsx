@@ -33,8 +33,10 @@ const uploadFolderHandler = (req: any, res: any) => {
       console.error('Error parsing files:', err);
       return res.status(500).json({ error: 'File upload failed' });
     }
+    console.log(fields)
 
     const directoryName = Array.isArray(fields.directoryName) ? fields.directoryName[0] : fields.directoryName;
+    console.log('directory',directoryName)
     // Sanitize directory name (to avoid path traversal and invalid names)
     if (!directoryName || !/^[a-zA-Z0-9_-]+$/.test(directoryName)) {
       return res.status(400).json({ error: 'Invalid directory name' });
