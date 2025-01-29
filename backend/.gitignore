@@ -10,3 +10,5 @@ project_repos/
 local_user_database.db
 chat_history/
 tree_sitter_libs/
+.npmrc
+package-lock.json
