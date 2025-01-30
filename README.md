@@ -17,13 +17,13 @@ Using rag_v2 which is taken from opensource we aim to build our own version reus
 First, run the development server:
 
 ```bash
+npm i
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+open new terminal
+cd backend/src
+python -m main.py
+
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost](http://localhost) with your browser to see the result.
