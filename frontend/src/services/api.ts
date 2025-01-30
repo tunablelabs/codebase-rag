@@ -8,7 +8,7 @@ import {
 } from '@/types';
 
 //const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
-const BASE_URL = 'http://localhost:8000'
+const BASE_URL = 'http://35.89.179.202:8000'
 class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
