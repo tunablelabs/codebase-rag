@@ -1,0 +1,18 @@
+llm-retriever: true
+llm-provider: openai
+# Here we optimize for ease of setup, so we skip the reranker which would require an extra API key.
+reranker-provider: none
+# Since we skipped the reranker, we can't afford to feed the retriever with too many candidates.
+retriever-top-k: 5
+
+# The settings below (embeddings and vector store) are only relevant when setting --no-llm-retriever
+
+# Embeddings
+embedding-provider: openai
+embedding-model: text-embedding-3-small
+tokens-per-chunk: 500
+chunks-per-batch: 100
+# Vector store
+vector-store-provider: faiss
+pinecone-index-name: rag
+hybrid-retrieval: true

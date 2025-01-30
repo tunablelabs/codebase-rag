@@ -1,0 +1,12 @@
+.env
+__pycache__
+*.cpython.*
+build/
+repos/
+rag.egg-info/
+env/
+node_modules/
+.next/
+.npmrc
+repos/
+package-lock.json
