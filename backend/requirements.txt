@@ -4,7 +4,6 @@ qdrant-client==1.13.0
 transformers==4.48.1
 tree-sitter==0.20.1
 python-dotenv==1.0.1
-torch==2.5.1
 openai==1.59.9
 langchain-text-splitters==0.3.5
 deepeval==2.1.9
