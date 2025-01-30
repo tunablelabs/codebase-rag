@@ -278,15 +278,22 @@ class ChatLLM:
                 }        
             # Search in Qdrant using the embedded vector
             search_result = self.qdrant_client.search(**search_params)
-            contexts = [
-            f"content: {r.payload.get('content', '')}, "
-            f"type: {r.payload.get('metadata', {}).get('type', 'unknown')}, "
-            f"file: {os.path.basename(r.payload.get('metadata', {}).get('file_path', ''))}, "
-            f"dependencies: {r.payload.get('metadata', {}).get('dependencies', [])}, "
-            f"imports: {r.payload.get('metadata', {}).get('imports', [])}"
-            for r in search_result
-            ]
-            return contexts
+            source_attributes = []
+            contexts = []
+
+            for r in search_result:
+                # Add the file basename to source_attributes list
+                source_attributes.append(os.path.basename(r.payload.get('metadata', {}).get('file_path', '')))
+                
+                # Your existing context creation
+                contexts.append(
+                    f"content: {r.payload.get('content', '')}, "
+                    f"type: {r.payload.get('metadata', {}).get('type', 'unknown')}, "
+                    f"file: {os.path.basename(r.payload.get('metadata', {}).get('file_path', ''))}, "
+                    f"dependencies: {r.payload.get('metadata', {}).get('dependencies', [])}, "
+                    f"imports: {r.payload.get('metadata', {}).get('imports', [])}"
+                )
+            return contexts, list(set(source_attributes))
             
         except Exception as e:
             raise Exception(f"Qdrant query failed: {str(e)}")
@@ -309,7 +316,7 @@ class ChatLLM:
             add_user(user_id)
             user_context = None
         
-        contexts = self.get_context_from_qdrant(ast_flag, collection_name, query, limit)
+        contexts, source_attributes = self.get_context_from_qdrant(ast_flag, collection_name, query, limit)
         
         system_prompt =  """You're assisting a user who has a question based on the documentation.
             Your goal is to provide a clear and concise response that addresses their query while referencing relevant information
@@ -332,7 +339,7 @@ class ChatLLM:
             HumanMessage(content="Context:\n" + "\n\n---\n\n".join(contexts)+"\n\n---\n\n".join(user_context)),
             HumanMessage(content=f"Question: {query}\nAnswer:")
         ]
-        return messages, contexts
+        return messages, contexts, source_attributes
 
     def invoke(
         self, 
@@ -356,7 +363,7 @@ class ChatLLM:
         Returns:
             Tuple[list[str], LLMInterface]: Contexts and LLM response
         """
-        messages, contexts = self.prepare_messages_with_context(ast_flag, collection_name, user_id, query, limit)
+        messages, contexts, source_attributes = self.prepare_messages_with_context(ast_flag, collection_name, user_id, query, limit)
         
         
         try:
@@ -368,7 +375,8 @@ class ChatLLM:
             llm_response = response_data["choices"][0]["message"]["content"]
             update_conversation(user_id, question=query , answer=llm_response, turn=3)
             return contexts, LLMInterface(
-                content=response_data["choices"][0]["message"]["content"],
+                # content=response_data["choices"][0]["message"]["content"],
+                content=f"{response_data['choices'][0]['message']['content']}\nSource files: {', '.join(source_attributes)}",
                 candidates=[choice["message"]["content"] for choice in response_data["choices"]],
                 completion_tokens=response_data["usage"]["completion_tokens"],
                 total_tokens=response_data["usage"]["total_tokens"],

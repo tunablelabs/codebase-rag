@@ -113,7 +113,7 @@ class ChunkStoreHandler:
                     docs_contents.append(chunk.content)
                     
                     metadata = {
-                        'file_path': getattr(chunk, 'chunk_id', file_path),
+                        'file_path': getattr(chunk, 'file_path', file_path),
                         'language': getattr(chunk, 'language', 'unknown'),
                         'type': getattr(chunk, 'type', 'unknown'),
                         'start_line': getattr(chunk, 'start_line', 0),
