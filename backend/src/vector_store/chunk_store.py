@@ -91,7 +91,7 @@ class ChunkStoreHandler:
 
     def store_chunks(self, file_chunks) -> bool:
         """
-        Store code chunks in the vector database.
+        Store code chunks and summary in the vector database in batches.
         
         Args:
             file_chunks: Dictionary mapping file paths to lists of ChunkInfo objects
@@ -102,16 +102,15 @@ class ChunkStoreHandler:
         try:
             docs_contents = []
             docs_metadatas = []
-            
+            self.BATCH_SIZE = 1000
+            self.embedding_dim = 1536 # update with qdrent vector size
             # Process each file's chunks
             for file_path, file_data in file_chunks.items():
                 if file_path == "summary":
                     continue
-                # Process chunks from the file data
+                
                 for chunk in file_data['chunks']:
-                    # Extract content and metadata
                     docs_contents.append(chunk.content)
-                    
                     metadata = {
                         'file_path': getattr(chunk, 'file_path', file_path),
                         'language': getattr(chunk, 'language', 'unknown'),
@@ -125,15 +124,12 @@ class ChunkStoreHandler:
                     docs_metadatas.append(metadata)
                     
             if docs_contents and docs_metadatas:
-                # Generate embeddings for all chunks
                 logger.info("Generating embeddings for chunks...")
                 embeddings = self._get_embeddings(docs_contents)
                 
-                # Create points for Qdrant
                 points = []
                 for content, metadata, embedding in zip(docs_contents, docs_metadatas, embeddings):
                     point_id = str(uuid.uuid4())
-                    
                     point = models.PointStruct(
                         id=point_id,
                         vector=embedding,
@@ -144,23 +140,56 @@ class ChunkStoreHandler:
                     )
                     points.append(point)
                 
-                # Store in Qdrant
+                # Store in Qdrant in batches
                 logger.info(f"Storing {len(points)} points in Qdrant...")
-                operation_info = self.client.upsert(
-                    collection_name=self.collection_name,
-                    points=points
-                )
+                for i in range(0, len(points), self.BATCH_SIZE):
+                    batch = points[i:i + self.BATCH_SIZE]
+                    try:
+                        self.client.upsert(
+                            collection_name=self.collection_name,
+                            points=batch
+                        )
+                        logger.info(f"Stored batch {i // self.BATCH_SIZE + 1} with {len(batch)} points")
+                    except Exception as e:
+                        logger.error(f"Failed to store batch {i // self.BATCH_SIZE + 1}: {str(e)}")
+                        return False
                 
-                logger.info(f"Successfully stored {len(points)} chunks in vector database")
-                return True
-            
+                logger.info("Successfully stored all chunks in vector database")
             else:
                 logger.warning("No chunks found to store")
-                return False
+            
+            # Store summary as a separate point
+            if "summary" in file_chunks and file_chunks["summary"]:
+                summary_data = file_chunks["summary"]
+                logger.info("Storing summary in Qdrant...")
+                
+                summary_point = models.PointStruct(
+                    id=str(uuid.uuid4()),
+                    vector=[0] * self.embedding_dim,  # Default zero vector
+                    payload={
+                        'metadata': {
+                            'type': 'summary',
+                            **summary_data
+                        }
+                    }
+                )
+                
+                try:
+                    self.client.upsert(
+                        collection_name=self.collection_name,
+                        points=[summary_point]
+                    )
+                    logger.info("Successfully stored summary in Qdrant")
+                except Exception as e:
+                    logger.error(f"Failed to store summary: {str(e)}")
+                    return False
+            
+            return True
                 
         except Exception as e:
             logger.error(f"Error storing chunks: {str(e)}")
             return False
+
 
     def get_collection_info(self):
         """Get information about the current collection"""

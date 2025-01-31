@@ -16,6 +16,7 @@ class TSImportStrategy(BaseChunkingStrategy):
         imports = []
         current_imports = []
         start_line = 1
+        max_import_chunk_size = 10  # Set a reasonable limit for chunk size
         
         for i, line in enumerate(code.splitlines(), 1):
             stripped = line.strip()
@@ -33,17 +34,31 @@ class TSImportStrategy(BaseChunkingStrategy):
             
             elif current_imports and stripped:
                 # End of import block
-                content = '\n'.join(current_imports)
-                imports.append(ChunkInfo(
-                    content=content,
-                    language='typescript',
-                    chunk_id=self._generate_chunk_id(content, file_path),
-                    type='import',
-                    start_line=start_line,
-                    end_line=i-1,
-                    imports=set(current_imports)
-                ))
-                current_imports = []
+                if len(current_imports) >= max_import_chunk_size:
+                    content = '\n'.join(current_imports)
+                    imports.append(ChunkInfo(
+                        content=content,
+                        language='typescript',
+                        chunk_id=self._generate_chunk_id(content, file_path),
+                        type='import',
+                        start_line=start_line,
+                        end_line=i-1,
+                        imports=set(current_imports)
+                    ))
+                    current_imports = []
+                else:
+                    # Continue adding imports together
+                    content = '\n'.join(current_imports)
+                    imports.append(ChunkInfo(
+                        content=content,
+                        language='typescript',
+                        chunk_id=self._generate_chunk_id(content, file_path),
+                        type='import',
+                        start_line=start_line,
+                        end_line=i-1,
+                        imports=set(current_imports)
+                    ))
+                    current_imports = []
         
         # Handle remaining imports
         if current_imports:
@@ -98,9 +113,11 @@ class TypeScriptChunker:
         """Process a TypeScript AST node"""
         try:
             if self._is_chunk_worthy(node):
+                # Combine multiple statements or function declarations into one chunk
                 chunk_content = code[node.start_byte:node.end_byte]
                 chunk_type = self._determine_chunk_type(node)
                 
+                # Group multiple nodes if they belong together
                 chunk = ChunkInfo(
                     content=chunk_content,
                     language='typescript',
@@ -110,33 +127,26 @@ class TypeScriptChunker:
                     end_line=node.end_point[0] + 1,
                     metadata=self._extract_metadata(node)
                 )
-                
                 chunks.append(chunk)
-            
-            # Process children
+        
+            # Process children nodes and consider grouping them together
             for child in node.children:
                 self._process_node(child, code, file_path, chunks)
-                
+    
         except Exception as e:
             self.logger.warning(f"Error processing node: {e}")
     
     def _is_chunk_worthy(self, node: Node) -> bool:
-        """Determine if a node should be its own chunk"""
+        """Determine if a node should be its own chunk based on context"""
+        # Example rule to keep larger chunks
         return node.type in {
             'function_declaration',
             'class_declaration',
             'method_definition',
-            'arrow_function',
-            'export_statement',
-            'object_pattern',
-            'class_body',
             'interface_declaration',
             'type_alias_declaration',
-            'enum_declaration',
-            'namespace_declaration',
-            'abstract_class_declaration',
-            'ambient_declaration'
-        }
+            'namespace_declaration'
+        } or (len(node.children) > 3)  # If a node has many children, make it a larger chunk
     
     def _determine_chunk_type(self, node: Node) -> str:
         """Determine the type of TypeScript chunk"""
@@ -282,7 +292,7 @@ class TypeScriptChunker:
             'imports': list(chunk.imports),
             'metadata': chunk.metadata
         }
-        
+    
     def create_chunks_from_entities(self, entities: List[CodeEntity], file_path: str) -> List[ChunkInfo]:
         """Create chunks from parsed entities."""
         chunks = []

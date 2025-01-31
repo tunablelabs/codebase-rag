@@ -333,10 +333,9 @@ class ChatLLM:
               Instead, respond with "I don't know".
             
             Context:\n"""
-            
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content="Context:\n" + "\n\n---\n\n".join(contexts)+"\n\n---\n\n".join(user_context)),
+            HumanMessage(content="Context:\n" + "\n\n".join(contexts)+"\n\n"+ "\n\n"+user_context),
             HumanMessage(content=f"Question: {query}\nAnswer:")
         ]
         return messages, contexts, source_attributes
@@ -348,7 +347,7 @@ class ChatLLM:
         user_id: str,
         query: str, 
         limit: int = 5, 
-        temperature: float = 0, 
+        temperature: float = 0.1, 
         **kwargs
     ) -> Tuple[list[str], LLMInterface]:
         """
