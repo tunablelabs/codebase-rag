@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import MainContent from "@/components/layout/MainContent";
 import { ChatOptions, Session } from "@/types";
@@ -72,7 +72,28 @@ export default function ChatPage() {
       console.error("File upload failed:", error);
     }
   };
+  
+  // Add this useEffect to handle stats updates
+  useEffect(() => {
+    const updateStatsForSession = async () => {
+      if (currentSessionId) {
+        try {
+          const updatedStats = await api.getStats(currentSessionId);
+          handlestatsUpload(updatedStats.stats);
+          setIsStatsVisible(true);
+        } catch (error) {
+          console.error("Failed to fetch stats for session:", error);
+          setStats(null);
+          setIsStatsVisible(false);
+        }
+      } else {
+        setStats(null);
+        setIsStatsVisible(false);
+      }
+    };
 
+    updateStatsForSession();
+  }, [currentSessionId]);
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);

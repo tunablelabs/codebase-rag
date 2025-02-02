@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { FileListComponent } from "../file/FileList";
 import ShowStats from "../file/ShowStats"
 import { ChatOptions, Session } from "@/types";
@@ -7,7 +7,7 @@ import { Settings, Send, ChevronUp, ChevronDown } from 'lucide-react';
 interface Stats {
   total_code_files: number;
   language_distribution: {
-    [language: string]: string; // For example: {"Python": "100%"}
+    [language: string]: string;
   };
 }
 
@@ -44,11 +44,18 @@ export default function MainContent({
 }: MainContentProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+const messagesEndRef = useRef<HTMLDivElement>(null);
+
+useEffect(() => {
+  if (messagesEndRef.current) {
+    messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }
+}, [currentSession?.messages, isPending]);
+
   return (
     <div className="flex flex-1">
       <div className="flex-1 p-2">
         <div className="max-w-4xl mx-auto space-y-2">
-        
           <div className="h-[calc(100vh-220px)] rounded-xl bg-base-200/50 dark:bg-base-300/20 
             shadow-lg backdrop-blur-sm transition-all duration-300 
             border border-base-300 dark:border-slate-600/50">
@@ -68,20 +75,19 @@ export default function MainContent({
                           {msg.text}
                         </pre>
 
-                        {/* Metrics Tooltip (Only for bot responses) */}
-                        {msg.type === "bot" && msg.metric &&(
-                            <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-sm text-sm">
-                              <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Response Metrics</h4>
-                              <ul className="space-y-1 text-gray-600 dark:text-gray-400">
-                                {Object.entries(msg.metric).map(([key, value]) => (
-                                  <li key={key}>
-                                    <b>{key}:</b> {typeof value === 'object' && value !== null ? value.score?.toFixed(2) : JSON.stringify(value)}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                    </div>
+                        {msg.type === "bot" && msg.metric && (
+                          <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-sm text-sm">
+                            <h4 className="font-bold text-gray-700 dark:text-gray-300 mb-2">Response Metrics</h4>
+                            <ul className="space-y-1 text-gray-600 dark:text-gray-400">
+                              {Object.entries(msg.metric).map(([key, value]) => (
+                                <li key={key}>
+                                  <b>{key}:</b> {typeof value === 'object' && value !== null ? value.score?.toFixed(2) : JSON.stringify(value)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 ) : (
@@ -92,9 +98,33 @@ export default function MainContent({
                     </div>
                   </div>
                 )}
+
+                {/* Loading Spinner */}
+                {isPending && (
+                  <div className="flex justify-start">
+                    <div className="bg-base-100 dark:bg-base-200 rounded-lg p-4 shadow-sm flex items-center gap-3">
+                      <div className="relative">
+                        <div className="w-8 h-8 border-4 border-t-primary border-primary/30 rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-2 h-2 bg-primary rounded-full"></div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-base-content">
+                          Generating Response...
+                        </span>
+                        <span className="text-xs text-base-content/60">
+                          This may take a few seconds
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+            <div ref={messagesEndRef} />
           </div>
+
 
  
           <div className="relative">
@@ -187,7 +217,7 @@ export default function MainContent({
                 <input
                   name="message"
                   placeholder="Ask me about your code..."
-                  className="w-full pl-16 pr-16 py-3.5 rounded-xl
+                  className="w-full pl-24 pr-16 py-3.5 rounded-xl
                     bg-base-100 dark:bg-base-200
                     border border-base-300 dark:border-base-700
                     text-base-content placeholder:text-base-content/50
