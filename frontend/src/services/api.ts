@@ -4,10 +4,11 @@ import {
   RepositoryUploadRequest,
   QueryRequest,
   QueryResponse,
-  UploadStats
+  UploadStats,
+  ListChatSession
 } from '@/types';
 
-//const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+// const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const BASE_URL = 'http://35.89.179.202:8000'
 class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -35,6 +36,20 @@ export const api = {
     });
     console.log(response)
     return handleResponse<CreateSessionResponse>(response);
+  },
+
+ // Add logging to the listAllSessions method
+  async listAllSessions(): Promise<ListChatSession[]> {
+    console.log("[API] Fetching sessions...");
+    const response = await fetch(`${BASE_URL}/codex/chat/history`, {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    });
+    const data = await handleResponse<ListChatSession[]>(response);
+    console.log("[API] Received sessions:", data);
+    return data;
   },
 
   async uploadRepository(request: RepositoryUploadRequest): Promise<UploadResponse> {
