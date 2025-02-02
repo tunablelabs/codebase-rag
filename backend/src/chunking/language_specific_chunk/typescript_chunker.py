@@ -77,6 +77,7 @@ class TypeScriptChunker:
     MIN_CHUNK_LINES = 10     # Minimum lines for standalone chunk
     MAX_METHOD_LINES = 50    # Maximum lines for method chunks
     MAX_GROUP_DISTANCE = 3   # Maximum lines between related entities
+    LARGE_ENTITY_THRESHOLD = 100  # Threshold for splitting entities
     
     # TypeScript-specific patterns
     COHESIVE_TYPES = {
@@ -90,15 +91,29 @@ class TypeScriptChunker:
         'namespace': {'function', 'const', 'let', 'var', 'type'}
     }
     
+    # Logical split points for large entities
+    SPLIT_MARKERS = [
+        '}',           # End of block
+        '\n\n',       # Double newline
+        'function',   # Function declaration
+        'class',      # Class declaration
+        'interface',  # Interface declaration
+        'if ',        # Control structures
+        'for ',
+        'while ',
+        'switch '
+    ]
+    
     def __init__(self, parser):
         self.parser = parser
         self.logger = logging.getLogger(self.__class__.__name__)
         self.import_strategy = TSImportStrategy()
+        self.file_path = None
 
     def create_chunks_from_entities(self, entities: List[CodeEntity], file_path: str) -> List[ChunkInfo]:
         """Create optimized chunks from TypeScript entities"""
         try:
-            # First read the file content
+            self.file_path = file_path
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
@@ -112,14 +127,10 @@ class TypeScriptChunker:
             sorted_entities = sorted(entities, key=lambda e: e.location.start_line)
             entity_groups = self._group_entities(sorted_entities)
             
+            # Process each group
             for group in entity_groups:
-                if len(group) == 1 and len(group[0].content.splitlines()) < self.MIN_CHUNK_LINES:
-                    # Try to merge small standalone entities with neighbors
-                    continue
-                
-                chunk = self._create_chunk_from_group(group, file_path)
-                if chunk:
-                    chunks.append(chunk)
+                new_chunks = self._process_entity_group(group)
+                chunks.extend(new_chunks)
             
             # Add dependencies
             tree = self.parser.parse(bytes(content, 'utf-8'))
@@ -134,6 +145,113 @@ class TypeScriptChunker:
         except Exception as e:
             self.logger.warning(f"Error creating chunks from entities: {e}")
             return []
+
+    def _process_entity_group(self, group: List[CodeEntity]) -> List[ChunkInfo]:
+        """Process a group of entities, handling large entities appropriately"""
+        chunks = []
+        
+        # Check if group contains large entities that need splitting
+        total_lines = self._get_group_size(group)
+        
+        if total_lines > self.LARGE_ENTITY_THRESHOLD and len(group) == 1:
+            # Single large entity - split it
+            chunks.extend(self._split_large_entity(group[0]))
+        elif total_lines > self.LARGE_ENTITY_THRESHOLD:
+            # Multiple entities forming large group - split at logical boundaries
+            chunks.extend(self._split_large_group(group))
+        else:
+            # Normal sized group - process as before
+            chunk = self._create_chunk_from_group(group)
+            if chunk:
+                chunks.append(chunk)
+        
+        return chunks
+
+    def _split_large_entity(self, entity: CodeEntity) -> List[ChunkInfo]:
+        """Split a large entity into multiple smaller chunks"""
+        chunks = []
+        lines = entity.content.splitlines()
+        current_chunk_lines = []
+        current_start_line = entity.location.start_line
+        chunk_number = 1
+        
+        for i, line in enumerate(lines):
+            current_chunk_lines.append(line)
+            
+            # Check for logical split points
+            should_split = False
+            if len(current_chunk_lines) >= self.MAX_CHUNK_LINES:
+                should_split = True
+            elif len(current_chunk_lines) > self.MIN_CHUNK_LINES:
+                # Look for natural split points
+                for marker in self.SPLIT_MARKERS:
+                    if line.strip().startswith(marker):
+                        should_split = True
+                        break
+            
+            if should_split or i == len(lines) - 1:  # Also handle last chunk
+                chunk = ChunkInfo(
+                    content='\n'.join(current_chunk_lines),
+                    language='typescript',
+                    chunk_id=f"{self.file_path}:{entity.type}_{entity.name}_{chunk_number}",
+                    type=entity.type,
+                    start_line=current_start_line,
+                    end_line=current_start_line + len(current_chunk_lines) - 1,
+                    metadata={
+                        'is_partial': True,
+                        'parent_entity': entity.name,
+                        'section_number': chunk_number,
+                        'total_sections': (len(lines) // self.MAX_CHUNK_LINES) + 1,
+                        'original_start': entity.location.start_line,
+                        'original_end': entity.location.end_line,
+                        'original_type': entity.type
+                    }
+                )
+                chunks.append(chunk)
+                current_chunk_lines = []
+                current_start_line += len(current_chunk_lines)
+                chunk_number += 1
+        
+        return chunks
+
+    def _split_large_group(self, group: List[CodeEntity]) -> List[ChunkInfo]:
+        """Split a large group of entities into logical chunks"""
+        chunks = []
+        current_group = []
+        current_lines = 0
+        
+        for entity in group:
+            entity_lines = len(entity.content.splitlines())
+            
+            if entity_lines > self.LARGE_ENTITY_THRESHOLD:
+                # Handle individual large entity
+                if current_group:
+                    chunk = self._create_chunk_from_group(current_group)
+                    if chunk:
+                        chunks.append(chunk)
+                    current_group = []
+                    current_lines = 0
+                
+                chunks.extend(self._split_large_entity(entity))
+            elif current_lines + entity_lines > self.MAX_CHUNK_LINES:
+                # Create chunk from current group and start new group
+                chunk = self._create_chunk_from_group(current_group)
+                if chunk:
+                    chunks.append(chunk)
+                current_group = [entity]
+                current_lines = entity_lines
+            else:
+                # Add to current group
+                current_group.append(entity)
+                current_lines += entity_lines
+        
+        # Handle remaining group
+        if current_group:
+            chunk = self._create_chunk_from_group(current_group)
+            if chunk:
+                chunks.append(chunk)
+        
+        return chunks
 
     def _group_entities(self, entities: List[CodeEntity]) -> List[List[CodeEntity]]:
         """Group related entities based on type and proximity"""
@@ -180,17 +298,6 @@ class TypeScriptChunker:
                     entity2.location.start_line - entity1.location.end_line <= self.MAX_GROUP_DISTANCE):
                     return True
             
-            # Keep related declarations together
-            if (entity1.type in ['const', 'let', 'var'] and 
-                entity2.type in ['const', 'let', 'var'] and
-                entity2.location.start_line - entity1.location.end_line <= 2):
-                return True
-            
-            # Keep related type definitions together
-            if (entity1.type in ['type', 'interface'] and 
-                entity2.type in ['type', 'interface']):
-                return True
-            
             return False
             
         except Exception as e:
@@ -206,7 +313,7 @@ class TypeScriptChunker:
         end_line = max(e.location.end_line for e in entities)
         return end_line - start_line + 1
 
-    def _create_chunk_from_group(self, entities: List[CodeEntity], file_path: str) -> Optional[ChunkInfo]:
+    def _create_chunk_from_group(self, entities: List[CodeEntity]) -> Optional[ChunkInfo]:
         """Create a chunk from a group of entities"""
         if not entities:
             return None
@@ -223,17 +330,13 @@ class TypeScriptChunker:
                 'declarations': [e.name for e in entities],
                 'exports': any(e.metadata.get('is_export', False) for e in entities),
                 'decorators': [d for e in entities 
-                             for d in e.metadata.get('decorators', [])],
-                'is_class_related': any(e.type in ['class', 'method', 'property'] 
-                                      for e in entities),
-                'is_interface_related': any(e.type in ['interface', 'type'] 
-                                         for e in entities)
+                             for d in e.metadata.get('decorators', [])]
             }
             
             return ChunkInfo(
                 content=content,
                 language='typescript',
-                chunk_id=f"{file_path}:{chunk_type}_{entities[0].location.start_line}",
+                chunk_id=f"{self.file_path}:{chunk_type}_{entities[0].location.start_line}",
                 type=chunk_type,
                 start_line=entities[0].location.start_line,
                 end_line=entities[-1].location.end_line,
@@ -300,7 +403,9 @@ class TypeScriptChunker:
             
             if (current_lines < self.MIN_CHUNK_LINES and 
                 chunk_lines < self.MIN_CHUNK_LINES and
-                current_lines + chunk_lines <= self.MAX_CHUNK_LINES):
+                current_lines + chunk_lines <= self.MAX_CHUNK_LINES and
+                not current.metadata.get('is_partial') and 
+                not chunk.metadata.get('is_partial')):
                 # Merge chunks
                 current = self._merge_chunks(current, chunk)
             else:
