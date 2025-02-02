@@ -217,7 +217,7 @@ async def update_chat_data(file_id: str, user_msg: str, system_msg: str):
             
         data['chat'].append({
             "user": user_msg,
-            "system": system_msg
+            "bot": system_msg
         })
         
         data['last_updated'] = datetime.now().strftime("%Y%m%d_%H%M%S")
