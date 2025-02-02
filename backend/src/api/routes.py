@@ -164,7 +164,7 @@ async def extract_repository(repo: FileID):
 
 
 @router.post("/query")
-async def query_code(request: QueryRequest, llm: ChatLLM = Depends(get_llm)):
+async def query_code(request: QueryRequest, llm: ChatLLM = Depends(lambda: get_llm("azure"))):
     """
     Endpoint for regular queries.
 
@@ -189,7 +189,7 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(get_llm)):
             user_id=request.file_id,
             query=request.query,
             limit=request.limit,
-            temperature=0,
+            temperature=0.1
         )
         evaluation_metrics = evaluator.evaluate(
             use_llm=request.use_llm == "True",
@@ -200,7 +200,6 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(get_llm)):
         await update_chat_data(request.file_id, request.query, response.content)
         return {
             "query": request.query,
-            # "contexts": contexts,
             "response": response.content,
             "metric": evaluation_metrics,
         }
