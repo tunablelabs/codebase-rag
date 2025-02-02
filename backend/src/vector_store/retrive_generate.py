@@ -1,20 +1,22 @@
 from typing import Iterator, Optional, Any, Tuple, List
-from openai import OpenAI, AzureOpenAI
+from openai import OpenAI
 from qdrant_client import QdrantClient
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import os
 import json
-import requests
 from datetime import datetime
-from abc import ABC, abstractmethod
-from config.config import OPENAI_API_KEY
+import logging
 
+from .providers import BaseLLMProvider, OpenAIProvider, AzureOpenAIProvider, ClaudeProvider
 from .get_local_db import fetch_user_data, check_and_create_table, add_user, update_conversation, user_exists
+from config.config import OPENAI_API_KEY
 
 # checks & creates user localdb if not already
 check_and_create_table()
+
+logger = logging.getLogger(__name__)
 
 # Message Classes for OpenAI Chat Format
 class BaseMessage:
@@ -61,134 +63,6 @@ class LLMInterface:
         self.total_cost = total_cost
         self.timestamp = timestamp or datetime.now().isoformat()
 
-# Abstract base class for LLM providers
-class BaseLLMProvider(ABC):
-    @abstractmethod
-    def prepare_client(self):
-        pass
-
-    @abstractmethod
-    def invoke(self, messages: list[dict], temperature: float, **kwargs) -> dict:
-        pass
-
-    @abstractmethod
-    def stream(self, messages: list[dict], temperature: float, **kwargs) -> Iterator[Any]:
-        pass
-
-# OpenAI Provider Implementation
-class OpenAIProvider(BaseLLMProvider):
-    def __init__(self, api_key: str, model: str):
-        self.api_key = api_key
-        self.model = model
-        self.base_url = "https://api.openai.com/v1/chat/completions"
-
-    def prepare_client(self):
-        pass  # Empty implementation since we're using REST API
-
-    def invoke(self, messages: list[dict], temperature: float, **kwargs) -> dict:
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": temperature,
-            **kwargs,
-        }
-
-        response = requests.post(self.base_url, headers=headers, json=payload)
-        response.raise_for_status()
-        return response.json()
-
-    def stream(self, messages: list[dict], temperature: float, **kwargs) -> Iterator[Any]:
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": temperature,
-            "stream": True,
-            **kwargs,
-        }
-
-        with requests.post(self.base_url, headers=headers, json=payload, stream=True) as response:
-            response.raise_for_status()
-            for line in response.iter_lines():
-                if line:
-                    chunk = line.decode("utf-8").strip()
-                    if chunk.startswith("data: "):
-                        chunk = chunk[6:]
-                        if chunk != "[DONE]":
-                            try:
-                                chunk_data = json.loads(chunk)
-                                yield chunk_data
-                            except json.JSONDecodeError:
-                                continue
-
-# Azure OpenAI Provider Implementation
-class AzureOpenAIProvider(BaseLLMProvider):
-    def __init__(self, api_key: str, endpoint: str, deployment_name: str):
-        self.api_key = api_key
-        self.endpoint = endpoint
-        self.deployment_name = deployment_name
-
-    def prepare_client(self):
-        pass  # Empty implementation since we're using REST API
-
-    def invoke(self, messages: list[dict], temperature: float, **kwargs) -> dict:
-        headers = {
-            "api-key": self.api_key,
-            "Content-Type": "application/json",
-        }
-        
-        url = f"{self.endpoint}/openai/deployments/{self.deployment_name}/chat/completions?api-version=2024-02-15-preview"
-        
-        payload = {
-            "messages": messages,
-            "temperature": temperature,
-            **kwargs,
-        }
-
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        return response.json()
-
-    def stream(self, messages: list[dict], temperature: float, **kwargs) -> Iterator[Any]:
-        headers = {
-            "api-key": self.api_key,
-            "Content-Type": "application/json",
-        }
-        
-        url = f"{self.endpoint}/openai/deployments/{self.deployment_name}/chat/completions?api-version=2024-02-15-preview"
-        
-        payload = {
-            "messages": messages,
-            "temperature": temperature,
-            "stream": True,
-            **kwargs,
-        }
-
-        with requests.post(url, headers=headers, json=payload, stream=True) as response:
-            response.raise_for_status()
-            for line in response.iter_lines():
-                if line:
-                    chunk = line.decode("utf-8").strip()
-                    if chunk.startswith("data: "):
-                        chunk = chunk[6:]
-                        if chunk != "[DONE]":
-                            try:
-                                chunk_data = json.loads(chunk)
-                                yield chunk_data
-                            except json.JSONDecodeError:
-                                continue
-
-
-
 class ChatLLM:
     """Main class for handling chat interactions with context from Qdrant."""
     
@@ -231,7 +105,7 @@ class ChatLLM:
 
         return [m.to_openai_format() for m in input_]
 
-    def get_context_from_qdrant(self, ast_flag: str, collection_name, query: str, limit: int = 5) -> list[str]:
+    def get_context_from_qdrant(self, ast_flag: str, collection_name, query: str, limit: int = 5) -> Tuple[list[str], list[str]]:
         """
         Fetch relevant context chunks from Qdrant.
         
@@ -242,7 +116,7 @@ class ChatLLM:
             limit (int): Maximum number of chunks to retrieve
             
         Returns:
-            list[str]: Formatted context chunks
+            Tuple[list[str], list[str]]: Formatted context chunks and source attributes
         """
         try:
             # Str to Bool Conversion
@@ -254,19 +128,18 @@ class ChatLLM:
                 input=query
             )
             query_vector = query_embedd.data[0].embedding
+            
             search_params = {
-                    "collection_name": collection_name,
-                    "query_vector": query_vector,
-                    "limit": limit
+                "collection_name": collection_name,
+                "query_vector": query_vector,
+                "limit": limit
             }
-            # Apply a filter condition based on the value of `ast_flag`. 
-            # - If `ast_flag` is False, retrieve only text-based data. 
-            # - If `ast_flag` is True, retrieve all data chunks without restriction.
+            
+            # Apply filter based on ast_flag
             if ast_filter:
                 search_params["query_filter"] = {
                     "must": []
                 } 
-                
             else:
                 search_params["query_filter"] = {
                     "must": [
@@ -275,9 +148,13 @@ class ChatLLM:
                             "match": {"value": "text"}
                         }
                     ]
-                }        
+                }
+                
             # Search in Qdrant using the embedded vector
             search_result = self.qdrant_client.search(**search_params)
+            num_retrieved_chunks = len(search_result)
+            logger.info(f"Number of retrieved chunks: {num_retrieved_chunks}")
+            
             source_attributes = []
             contexts = []
 
@@ -285,7 +162,7 @@ class ChatLLM:
                 # Add the file basename to source_attributes list
                 source_attributes.append(os.path.basename(r.payload.get('metadata', {}).get('file_path', '')))
                 
-                # Your existing context creation
+                # Create context string
                 contexts.append(
                     f"content: {r.payload.get('content', '')}, "
                     f"type: {r.payload.get('metadata', {}).get('type', 'unknown')}, "
@@ -293,21 +170,25 @@ class ChatLLM:
                     f"dependencies: {r.payload.get('metadata', {}).get('dependencies', [])}, "
                     f"imports: {r.payload.get('metadata', {}).get('imports', [])}"
                 )
+            
             return contexts, list(set(source_attributes))
             
         except Exception as e:
             raise Exception(f"Qdrant query failed: {str(e)}")
 
-    def prepare_messages_with_context(self, ast_flag, collection_name, user_id: str, query: str, limit: int = 5) -> Tuple[list[BaseMessage], list[str]]:
+    def prepare_messages_with_context(self, ast_flag: str, collection_name: str, user_id: str, query: str, limit: int = 5) -> Tuple[list[BaseMessage], list[str], list[str]]:
         """
         Prepare messages with context for the LLM.
         
         Args:
+            ast_flag (str): Flag for including AST chunks
+            collection_name (str): Name of the Qdrant collection
+            user_id (str): User identifier
             query (str): User query
             limit (int): Maximum number of context chunks
             
         Returns:
-            Tuple[list[BaseMessage], list[str]]: Prepared messages and raw contexts
+            Tuple[list[BaseMessage], list[str], list[str]]: Messages, contexts, and source attributes
         """
         
         if user_exists(user_id):
@@ -318,32 +199,71 @@ class ChatLLM:
         
         contexts, source_attributes = self.get_context_from_qdrant(ast_flag, collection_name, query, limit)
         
-        system_prompt =  """You're assisting a user who has a question based on the documentation.
-            Your goal is to provide a clear and concise response that addresses their query while referencing relevant information
-            from the documentation.
-            Remember to:
-            - Understand the user's question thoroughly.
-            - If the user's query is general (e.g., "hi," "good morning"),
-              greet them normally and avoid using the context from the documentation.
-            - If the user's query is specific and related to the documentation, locate and extract the pertinent information.
-            - Craft a response that directly addresses the user's query and provides accurate information
-              referring to the relevant source and page from the 'source' field of fetched context from the documentation to support your answer.
-            - Use a friendly and professional tone in your response.
-            - If you cannot find the answer in the provided context, do not pretend to know it.
-              Instead, respond with "I don't know".
-            
-            Context:\n"""
+        system_prompt =  """
+        You are an advanced AI Code Assistant. Your primary objectives are:
+
+        1. **Code Generation & Explanation**  
+        - Provide syntactically correct and well-commented code snippets.  
+        - Explain code structure, logic, and best practices.  
+
+        2. **Debugging & Optimization**  
+        - Identify errors, inefficiencies, and suggest improvements.  
+        - Offer structured debugging techniques and performance optimizations.  
+
+        3. **Integration & Best Practices**  
+        - Guide users on integrating libraries, frameworks, and APIs effectively.  
+        - Reference official documentation when relevant for clarity and accuracy.  
+
+        4. **Reliable & Clear Communication**  
+        - Use structured responses with clear formatting and examples.  
+        - If uncertain, respond honestly (e.g., "I'm not entirely sure" or "I don't know") rather than making assumptions.  
+
+        ---
+
+        ### **Response Formatting Guidelines**
+
+        #### **1. Overview**  
+        - Summarize the user query or problem statement.  
+        - Emphasize key details or goals from the request.  
+
+        #### **2. Solution Explanation**  
+        - Describe the approach or algorithm step by step.  
+        - Highlight relevant libraries, dependencies, or concepts.  
+
+        #### **3. Example Code (if applicable)**  
+        - Provide clean, well-structured code with inline comments.  
+        - Ensure correctness, readability, and practical usability.  
+
+        #### **4. Conclusion**  
+        - Summarize the core solution or final recommendation.  
+        - Mention possible optimizations, edge cases, or next steps.  
+
+        ---
+
+        ### **Additional Behavioral Guidelines**  
+
+        - **Clarify Ambiguities:** If the user's request is unclear, ask for clarification before proceeding.  
+        - **Adapt to User Needs:** If the user modifies the request, adjust your response accordingly.  
+        - **Professional & Ethical Standards:** Do not generate or suggest content that violates ethical guidelines.  
+        - **Conciseness & Readability:** Keep explanations clear, focused, and free from unnecessary complexity. 
+        - **If the user's query is general (e.g., "hi," "good morning"),greet them normally and avoid using the context from the documentation. 
+
+        Always follow these principles to ensure effective and user-friendly responses. **Now, proceed with the user's request.**
+
+        Context:\n"""
+        
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content="Context:\n" + "\n\n".join(contexts)+"\n\n"+ "\n\n"+user_context),
+            HumanMessage(content="Context:\n" + "\n\n".join(contexts)+"\n\n"+ "\n\n"+user_context if user_context else ""),
             HumanMessage(content=f"Question: {query}\nAnswer:")
         ]
+        
         return messages, contexts, source_attributes
 
     def invoke(
         self, 
-        ast_flag,
-        collection_name,
+        ast_flag: str,
+        collection_name: str,
         user_id: str,
         query: str, 
         limit: int = 5, 
@@ -354,16 +274,20 @@ class ChatLLM:
         Invoke LLM with context from Qdrant.
         
         Args:
+            ast_flag (str): Flag for including AST chunks
+            collection_name (str): Name of the Qdrant collection
+            user_id (str): User identifier
             query (str): User query
             limit (int): Maximum number of context chunks
-            temperature (float): OpenAI temperature parameter
-            **kwargs: Additional parameters for OpenAI API
+            temperature (float): LLM temperature parameter
+            **kwargs: Additional parameters for LLM API
             
         Returns:
             Tuple[list[str], LLMInterface]: Contexts and LLM response
         """
-        messages, contexts, source_attributes = self.prepare_messages_with_context(ast_flag, collection_name, user_id, query, limit)
-        
+        messages, contexts, source_attributes = self.prepare_messages_with_context(
+            ast_flag, collection_name, user_id, query, limit
+        )
         
         try:
             response_data = self.provider.invoke(
@@ -371,23 +295,25 @@ class ChatLLM:
                 temperature=temperature,
                 **kwargs
             )
+            
             llm_response = response_data["choices"][0]["message"]["content"]
-            update_conversation(user_id, question=query , answer=llm_response, turn=3)
+            update_conversation(user_id, question=query, answer=llm_response, turn=3)
+            
             return contexts, LLMInterface(
-                # content=response_data["choices"][0]["message"]["content"],
-                content=f"{response_data['choices'][0]['message']['content']}\nSource files: {', '.join(source_attributes)}",
+                content=f"{llm_response}\nSource files: {', '.join(source_attributes)}",
                 candidates=[choice["message"]["content"] for choice in response_data["choices"]],
                 completion_tokens=response_data["usage"]["completion_tokens"],
                 total_tokens=response_data["usage"]["total_tokens"],
                 prompt_tokens=response_data["usage"]["prompt_tokens"],
             )
         except Exception as e:
+            logger.error(f"LLM request failed: {str(e)}")
             raise Exception(f"LLM request failed: {str(e)}")
 
     def stream(
         self, 
-        ast_flag,
-        collection_name,
+        ast_flag: str,
+        collection_name: str,
         user_id: str,
         query: str, 
         limit: int = 5, 
@@ -398,15 +324,20 @@ class ChatLLM:
         Stream LLM responses with context from Qdrant.
         
         Args:
+            ast_flag (str): Flag for including AST chunks
+            collection_name (str): Name of the Qdrant collection
+            user_id (str): User identifier
             query (str): User query
             limit (int): Maximum number of context chunks
-            temperature (float): OpenAI temperature parameter
-            **kwargs: Additional parameters for OpenAI API
+            temperature (float): LLM temperature parameter
+            **kwargs: Additional parameters for LLM API
             
         Yields:
             Tuple[list[str], LLMInterface]: Contexts and partial LLM response
         """
-        messages, contexts = self.prepare_messages_with_context(ast_flag, collection_name, user_id, query, limit)
+        messages, contexts, _ = self.prepare_messages_with_context(
+            ast_flag, collection_name, user_id, query, limit
+        )
 
         try:
             for chunk_data in self.provider.stream(
@@ -419,4 +350,13 @@ class ChatLLM:
                     if content:
                         yield contexts, LLMInterface(content=content)
         except Exception as e:
+            logger.error(f"LLM streaming request failed: {str(e)}")
             raise Exception(f"LLM streaming request failed: {str(e)}")
+
+    def get_collection_info(self) -> Optional[dict]:
+        """Get information about the current collection"""
+        try:
+            return self.qdrant_client.get_collection(self.collection_name)
+        except Exception as e:
+            logger.error(f"Error getting collection info: {str(e)}")
+            return None
