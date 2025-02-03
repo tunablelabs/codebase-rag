@@ -1,16 +1,28 @@
 "use client";
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { useSession } from '@/hooks/useSession';
-import { Session } from '@/types';
 import { api } from '@/services/api';
+import { QueryMetrics } from "@/types/index";
 
-const SessionContext = createContext<ReturnType<typeof useSession> | null>(null);
+import { Session } from '@/types';
+interface SessionContextType {
+  sessions: Session[];
+  currentSession: Session;
+  currentSessionId: string | null;
+  isLoading: boolean;
+  createSession: (name: string, id: string) => Session;
+  addMessageToSession: (sessionId: string, message: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics }) => void;
+  setSessions: React.Dispatch<React.SetStateAction<Session[]>>;
+  setCurrentSessionId: React.Dispatch<React.SetStateAction<string | null>>;
+}
+
+export const SessionContext = createContext<SessionContextType | null>(null); // Export SessionContext
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-  const sessionState = useSession();
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const hasFetchedRef = useRef(false);
+  var currentSession = sessions.find(s => s.id === currentSessionId);
 
   const fetchSessions = async () => {
     try {
@@ -19,7 +31,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       const chatSessions = await api.listAllSessions();
 
       const formattedSessions = chatSessions.map(chat => ({
-        
         id: chat.file_id,
         name: chat.repo_name || 'New Chat',
         messages: chat.messages.flatMap(msg => {
@@ -44,9 +55,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         lastActive: new Date().toISOString()
       }));
 
-      console.log("Formatted sessions:", formattedSessions);
       setSessions(formattedSessions);
-      sessionState.setSessions(formattedSessions);
     } catch (error) {
       console.error('[SessionProvider] Error fetching sessions:', error);
     } finally {
@@ -59,10 +68,46 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       hasFetchedRef.current = true;
       fetchSessions();
     }
-  }, []); // Empty dependency array since we only want to fetch once on mount
+  }, []);
+
+  const createSession = (name: string, id: string) => {
+    console.log('recieved at back')
+    const newSession: Session = {
+      id,
+      name,
+      messages: [],
+      createdAt: new Date().toISOString(),
+      lastActive: new Date().toISOString(),
+    };
+    setSessions(prev => [...prev, newSession]);
+    setCurrentSessionId(newSession.id);
+    return newSession;
+  };
+
+  const addMessageToSession = (
+    sessionId: string,
+    message: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics}
+  ) => {
+    console.log('added to session',sessionId, message)
+    setSessions(prev => prev.map(session => {
+      console.log("inside",session)
+      if (session.id === sessionId) {
+        return {
+          ...session,
+          messages: [...session.messages, {
+            ...message,
+            timestamp: new Date().toISOString(),
+          }],
+          lastActive: new Date().toISOString(),
+        };
+      }
+      console.log('current_session',sessions)
+      return session;
+    }));
+  };
 
   return (
-    <SessionContext.Provider value={{ ...sessionState, sessions }}>
+    <SessionContext.Provider value={{ sessions, currentSessionId, currentSession, isLoading, createSession, addMessageToSession, setCurrentSessionId}}>
       {children}
     </SessionContext.Provider>
   );
