@@ -39,6 +39,7 @@ export default function Sidebar({
   
   useEffect(() => {
     if (sessionId) {
+      console.log(sessions)
       console.log("Session ID updated:", sessionId);
       createSession(newSessionName,sessionId);
       setNewSessionName("");
@@ -47,6 +48,7 @@ export default function Sidebar({
 
   useEffect(() => {
     if (sessionIdf) {
+      console.log(sessions)
       console.log("Session ID updated:", sessionIdf);
       createSession(newSessionName,sessionIdf);
       setNewSessionName("");
@@ -54,7 +56,6 @@ export default function Sidebar({
   }, [sessionIdf]);
 
  
-
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
     if (!selectedFiles) return;
