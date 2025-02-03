@@ -123,7 +123,7 @@ export default function ChatPage() {
         use_llm: llmEvaluatorValue, 
         ast_flag: astFlagValue,
         query: content,
-        limit: 3, // You can modify this limit as needed
+        limit: 5, // You can modify this limit as needed
       };
 
       const response = await api.queryRepository(queryRequest);
