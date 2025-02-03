@@ -85,6 +85,7 @@ export interface QueryRequest {
   use_llm: string;
   ast_flag: string;
   query: string;
+  sys_prompt: string;
   limit: number;
 }
 

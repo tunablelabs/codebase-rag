@@ -13,7 +13,7 @@ import { QueryRequest, QueryResponse } from "@/types";
 export default function ChatPage() {
   const [chatOptions, setChatOptions] = useState<ChatOptions>({
     githubUrl: "",
-    systemPrompt: "You are a coding assistant. Please answer the user's coding questions step by step, considering the code content and file structure. If unsure, say 'I don't know.'",
+    systemPrompt: "",
     astFlag: false,
     forceReindex: false,
     sessionId: undefined,
@@ -81,6 +81,8 @@ export default function ChatPage() {
     
     const astFlagValue = chatOptions.astFlag ? "True" : "False";
     const llmEvaluatorValue = chatOptions.llmEvaluator ? "True" : "False";
+    const prompt = chatOptions.systemPrompt;
+    console.log('prompt',prompt)
     console.log(content,currentSessionId,astFlagValue,llmEvaluatorValue);
     if (!currentSessionId) {
       alert("Please create a new session first.");
@@ -102,7 +104,8 @@ export default function ChatPage() {
         use_llm: llmEvaluatorValue, 
         ast_flag: astFlagValue,
         query: content,
-        limit: 3, // You can modify this limit as needed
+        sys_prompt: prompt,
+        limit: 5, // You can modify this limit as needed
       };
 
       const response = await api.queryRepository(queryRequest);
@@ -142,7 +145,7 @@ export default function ChatPage() {
         onPromptChange={(prompt) => setChatOptions(prev => ({ ...prev, systemPrompt: prompt }))}
         onResetPrompt={() => setChatOptions(prev => ({
           ...prev,
-          systemPrompt: "You are a coding assistant. Please answer the user's coding questions step by step, considering the code content and file structure. If unsure, say 'I don't know.'"
+          systemPrompt: ""
         }))}
         onAstChange={() => setChatOptions(prev => ({ ...prev, astFlag: !prev.astFlag }))}
         onForceReindexChange={() => setChatOptions(prev => ({ ...prev, forceReindex: !prev.forceReindex }))}
