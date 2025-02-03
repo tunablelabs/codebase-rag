@@ -69,18 +69,6 @@ class CodeParser:
             # Create chunks from the parsed entities first
             chunks = chunker.create_chunks_from_entities(entities, file_path)
             
-            # Add import chunks and enrich with dependencies
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            # Get import chunks
-            import_chunks = chunker.import_strategy.chunk(content, file_path)
-            chunks.extend(import_chunks)
-            
-            # Enrich all chunks with dependencies
-            tree = chunker.parser.parse(bytes(content, 'utf-8'))
-            if tree:
-                chunker._enrich_chunks(chunks, tree.root_node, content)
-            
             return {
                 'file_path': file_path,
                 'language': self.LANGUAGE_MAPPING[ext][0],

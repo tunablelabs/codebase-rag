@@ -9,6 +9,7 @@ from openai import OpenAI
 import time
 from tqdm import tqdm 
 import uuid
+import tiktoken
 
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,12 @@ class ChunkStoreHandler:
         )
         self.openai_client = OpenAI(api_key=OPENAI_API_KEY)
         self.repo_path = repo_path
+        self.tokenizer = tiktoken.get_encoding("cl100k_base")
+        self.MAX_TOKENS = 8192
+        self.MAX_RETRIES = 3  # Added retry limit
+        self.BATCH_SIZE = 500
         self.collection_name = self._create_collection_name()
+        self.processed_chunks = set()  # Track processed chunks
         self._ensure_collection_exists()
         
     def _create_collection_name(self):
@@ -31,15 +37,8 @@ class ChunkStoreHandler:
         Generate a unique collection name for QDrant from a git repository URL.
         The collection name will be lowercase, use underscores instead of special characters,
         and include the repository owner and name.
-        
-        Args:
-            git_url (str): The Git repository URL
-            
-        Returns:
-            str: A formatted collection name suitable for QDrant
         """
         components = [x for x in self.repo_path.split('\\') if x]
-        # Take the last two components (usually username/org and repo name)
         name_components = components[-1:]
         base_name = '-'.join(name_components)
         clean_name = re.sub(r'[^a-z0-9-]+', '_', base_name.lower()).strip('_')
@@ -55,61 +54,131 @@ class ChunkStoreHandler:
             logger.info(f"Creating collection {self.collection_name}")
             self.client.create_collection(
                 collection_name=self.collection_name,
-                vectors_config=models.VectorParams(size=1536, distance=models.Distance.COSINE)  # OpenAI embeddings are 1536 dimensions
+                vectors_config=models.VectorParams(
+                    size=1536, 
+                    distance=models.Distance.COSINE,
+                ),
+                optimizers_config=models.OptimizersConfigDiff(
+                    indexing_threshold=20000  # Optimize for larger datasets
+                )
             )
 
+    def _count_tokens(self, text: str) -> int:
+        """Return the number of tokens in a given text."""
+        return len(self.tokenizer.encode(text, disallowed_special=()))
 
+    def _split_text(self, text: str) -> List[str]:
+        """Splits long texts into smaller chunks within token limits."""
+        tokens = self.tokenizer.encode(text, disallowed_special=())
+        chunks = []
+        
+        for i in range(0, len(tokens), self.MAX_TOKENS):
+            chunk = self.tokenizer.decode(tokens[i : i + self.MAX_TOKENS])
+            if chunk.strip():  # Only add non-empty chunks
+                chunks.append(chunk)
+        
+        return chunks
+    
+    def _prepare_batches(self, texts: List[str], batch_size: int) -> List[List[str]]:
+        """Prepares batches ensuring each batch does not exceed max token limit."""
+        batches = []
+        current_batch = []
+        current_tokens = 0
+
+        for text in texts:
+            # Skip if already processed
+            text_hash = hash(text)
+            if text_hash in self.processed_chunks:
+                continue
+                
+            token_count = self._count_tokens(text)
+
+            if token_count > self.MAX_TOKENS:
+                logger.warning(f"Text exceeds max tokens ({token_count}), splitting it.")
+                chunks = self._split_text(text)
+                # Process split chunks immediately
+                for chunk in chunks:
+                    chunk_hash = hash(chunk)
+                    if chunk_hash not in self.processed_chunks:
+                        if current_tokens + self._count_tokens(chunk) > self.MAX_TOKENS:
+                            if current_batch:
+                                batches.append(current_batch)
+                            current_batch = []
+                            current_tokens = 0
+                        current_batch.append(chunk)
+                        current_tokens += self._count_tokens(chunk)
+                        self.processed_chunks.add(chunk_hash)
+                continue
+
+            if current_tokens + token_count > self.MAX_TOKENS or len(current_batch) >= batch_size:
+                if current_batch:
+                    batches.append(current_batch)
+                current_batch = []
+                current_tokens = 0
+
+            current_batch.append(text)
+            current_tokens += token_count
+            self.processed_chunks.add(text_hash)
+
+        if current_batch:
+            batches.append(current_batch)
+
+        return batches
+    
     def _get_embeddings(self, texts: List[str], batch_size: int = 100) -> List[List[float]]:
         """
         Get embeddings for a list of texts using OpenAI's API with rate limiting and batching.
-        
-        Args:
-            texts: List of texts to get embeddings for
-            batch_size: Number of texts to process in each batch
-            
-        Returns:
-            List of embeddings
         """
         all_embeddings = []
-        
-        for i in tqdm(range(0, len(texts), batch_size), desc="Generating embeddings"):
-            batch = texts[i:i + batch_size]
-            try:
-                response = self.openai_client.embeddings.create(
-                    model="text-embedding-ada-002",
-                    input=batch
-                )
-                batch_embeddings = [item.embedding for item in response.data]
-                all_embeddings.extend(batch_embeddings)
-                    
-            except Exception as e:
-                logger.error(f"Error generating embeddings for batch: {str(e)}")
-                raise
-                
-        return all_embeddings
+        batches = self._prepare_batches(texts, batch_size)
 
+        for batch in tqdm(batches, desc="Generating embeddings"):
+            for attempt in range(self.MAX_RETRIES):
+                try:
+                    if attempt > 0:
+                        time.sleep(attempt * 2)  # Exponential backoff
+                    response = self.openai_client.embeddings.create(
+                        model="text-embedding-ada-002",
+                        input=batch
+                    )
+                    batch_embeddings = [item.embedding for item in response.data]
+                    all_embeddings.extend(batch_embeddings)
+                    break
+                except Exception as e:
+                    if attempt == self.MAX_RETRIES - 1:
+                        logger.error(f"Failed to generate embeddings after {self.MAX_RETRIES} attempts: {str(e)}")
+                        raise
+                    logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+
+        return all_embeddings
 
     def store_chunks(self, file_chunks) -> bool:
         """
         Store code chunks and summary in the vector database in batches.
-        
-        Args:
-            file_chunks: Dictionary mapping file paths to lists of ChunkInfo objects
-            
-        Returns:
-            bool: True if successful, False otherwise
         """
         try:
+            if not isinstance(file_chunks, dict):
+                logger.error("file_chunks must be a dictionary")
+                return False
+
             docs_contents = []
             docs_metadatas = []
-            self.BATCH_SIZE = 1000
-            self.embedding_dim = 1536 # update with qdrent vector size
+            
             # Process each file's chunks
             for file_path, file_data in file_chunks.items():
                 if file_path == "summary":
                     continue
                 
+                if not isinstance(file_data, dict) or 'chunks' not in file_data:
+                    logger.error(f"Invalid file data structure for {file_path}")
+                    continue
+                
                 for chunk in file_data['chunks']:
+                    # Validate chunk has required attributes
+                    if not hasattr(chunk, 'content'):
+                        logger.warning(f"Chunk missing content in {file_path}")
+                        continue
+
                     docs_contents.append(chunk.content)
                     metadata = {
                         'file_path': getattr(chunk, 'file_path', file_path),
@@ -119,7 +188,8 @@ class ChunkStoreHandler:
                         'end_line': getattr(chunk, 'end_line', 0),
                         'metadata': getattr(chunk, 'metadata', {}),
                         'dependencies': getattr(chunk, 'dependencies', []),
-                        'imports': getattr(chunk, 'imports', [])
+                        'imports': getattr(chunk, 'imports', []),
+                        'chunk_hash': hash(chunk.content)  # For duplicate detection
                     }
                     docs_metadatas.append(metadata)
                     
@@ -140,32 +210,38 @@ class ChunkStoreHandler:
                     )
                     points.append(point)
                 
-                # Store in Qdrant in batches
+                # Store in Qdrant in batches with retry logic
                 logger.info(f"Storing {len(points)} points in Qdrant...")
                 for i in range(0, len(points), self.BATCH_SIZE):
                     batch = points[i:i + self.BATCH_SIZE]
-                    try:
-                        self.client.upsert(
-                            collection_name=self.collection_name,
-                            points=batch
-                        )
-                        logger.info(f"Stored batch {i // self.BATCH_SIZE + 1} with {len(batch)} points")
-                    except Exception as e:
-                        logger.error(f"Failed to store batch {i // self.BATCH_SIZE + 1}: {str(e)}")
-                        return False
+                    for attempt in range(self.MAX_RETRIES):
+                        try:
+                            if attempt > 0:
+                                time.sleep(attempt * 2)  # Exponential backoff
+                            self.client.upsert(
+                                collection_name=self.collection_name,
+                                points=batch
+                            )
+                            logger.info(f"Stored batch {i // self.BATCH_SIZE + 1} with {len(batch)} points")
+                            break
+                        except Exception as e:
+                            if attempt == self.MAX_RETRIES - 1:
+                                logger.error(f"Failed to store batch {i // self.BATCH_SIZE + 1}: {str(e)}")
+                                return False
+                            logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
                 
                 logger.info("Successfully stored all chunks in vector database")
             else:
-                logger.warning("No chunks found to store")
+                logger.warning("No valid chunks found to store")
             
-            # Store summary as a separate point
+            # Store summary with retry logic
             if "summary" in file_chunks and file_chunks["summary"]:
                 summary_data = file_chunks["summary"]
                 logger.info("Storing summary in Qdrant...")
                 
                 summary_point = models.PointStruct(
                     id=str(uuid.uuid4()),
-                    vector=[0] * self.embedding_dim,  # Default zero vector
+                    vector=[0] * 1536,  # Default zero vector
                     payload={
                         'metadata': {
                             'type': 'summary',
@@ -174,22 +250,27 @@ class ChunkStoreHandler:
                     }
                 )
                 
-                try:
-                    self.client.upsert(
-                        collection_name=self.collection_name,
-                        points=[summary_point]
-                    )
-                    logger.info("Successfully stored summary in Qdrant")
-                except Exception as e:
-                    logger.error(f"Failed to store summary: {str(e)}")
-                    return False
+                for attempt in range(self.MAX_RETRIES):
+                    try:
+                        if attempt > 0:
+                            time.sleep(attempt * 2)  # Exponential backoff
+                        self.client.upsert(
+                            collection_name=self.collection_name,
+                            points=[summary_point]
+                        )
+                        logger.info("Successfully stored summary in Qdrant")
+                        break
+                    except Exception as e:
+                        if attempt == self.MAX_RETRIES - 1:
+                            logger.error(f"Failed to store summary: {str(e)}")
+                            return False
+                        logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
             
             return True
                 
         except Exception as e:
             logger.error(f"Error storing chunks: {str(e)}")
             return False
-
 
     def get_collection_info(self):
         """Get information about the current collection"""

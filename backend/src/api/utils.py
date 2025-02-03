@@ -2,19 +2,28 @@ from datetime import datetime
 import json
 import shutil
 from typing import List, Dict
-from fastapi import HTTPException
+from fastapi import HTTPException, logger
 from git import Repo
 from pydantic import BaseModel
 from git_repo_parser.base_parser import CodeParser
 from vector_store.chunk_store import ChunkStoreHandler
-from vector_store.retrive_generate import ChatLLM, OpenAIProvider, AzureOpenAIProvider
+from vector_store.retrive_generate import ChatLLM
 from chunking.document_chunks import DocumentChunker
 from evaluation import Evaluator, LLMMetricType, NonLLMMetricType
 from config.config import OPENAI_API_KEY, QDRANT_HOST, QDRANT_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_MODEL
 import os
 from pathlib import Path
 from dataclasses import dataclass
+from typing import Optional
+import logging
+from enum import Enum
+from vector_store.providers import OpenAIProvider, AzureOpenAIProvider, ClaudeProvider
 
+
+class LLMProvider(str, Enum):
+    OPENAI = "openai"
+    AZURE = "azure"
+    CLAUDE = "claude"
 
 class FileID(BaseModel):
     file_id: str
@@ -147,28 +156,58 @@ class GetChatHistoryLocation:
         self.base_path = os.path.join(self.project_root, "chat_history")
         os.makedirs(self.base_path, exist_ok=True)
 
-# Initialize ChatLLM as a module-level singleton
-_llm_instance = None
 
-def get_llm() -> ChatLLM:
+def get_llm(provider_type: Optional[str] = None) -> ChatLLM:
     """
-    Dependency injection function to get or create ChatLLM instance.
-    Uses singleton pattern to ensure only one instance exists.
+    Create ChatLLM instance for the specified provider.
+    
+    Args:
+        provider_type: Type of LLM provider to use ("openai", "azure", or "claude")
+        
+    Returns:
+        ChatLLM: Configured ChatLLM instance
+        
+    Raises:
+        ValueError: If no valid provider credentials are found
+        Exception: If provider creation fails
     """
-    global _llm_instance
-    if _llm_instance is None:
-        # For OpenAI
-        openai_provider = OpenAIProvider(api_key=OPENAI_API_KEY,model="gpt-4o")
-        # For Azure OpenAI
-        azure_provider = AzureOpenAIProvider(api_key=AZURE_OPENAI_KEY,endpoint=AZURE_OPENAI_ENDPOINT,deployment_name=AZURE_OPENAI_MODEL)
-        # Initialize ChatLLM with required provider
-        _llm_instance = ChatLLM(
-            provider = azure_provider,
+    try:
+        CLAUDE_API_KEY = None
+        # Default to Azure if no provider specified
+        provider_type = provider_type or "azure"
+        
+        # Create provider based on type
+        if provider_type == "openai" and OPENAI_API_KEY:
+            provider = OpenAIProvider(
+                api_key=OPENAI_API_KEY,
+                model="gpt-40"
+            )
+        elif provider_type == "azure" and AZURE_OPENAI_KEY:
+            provider = AzureOpenAIProvider(
+                api_key=AZURE_OPENAI_KEY,
+                endpoint=AZURE_OPENAI_ENDPOINT,
+                deployment_name=AZURE_OPENAI_MODEL
+            )
+        
+        elif provider_type == "claude" and CLAUDE_API_KEY:
+            provider = ClaudeProvider(
+                api_key=CLAUDE_API_KEY,
+                model="claude-3-opus-20240229"
+            )
+        else:
+            raise ValueError(f"Invalid provider type or missing credentials: {provider_type}")
+        
+        # Create and return new ChatLLM instance
+        return ChatLLM(
+            provider=provider,
             qdrant_url=QDRANT_HOST,
             qdrant_api_key=QDRANT_API_KEY
         )
-    return _llm_instance
-
+        
+    except Exception as e:
+        logger.error(f"Failed to create LLM instance: {str(e)}")
+        raise
+    
 def get_project_path(file_name: str):
     
     try:
@@ -217,7 +256,7 @@ async def update_chat_data(file_id: str, user_msg: str, system_msg: str):
             
         data['chat'].append({
             "user": user_msg,
-            "system": system_msg
+            "bot": system_msg
         })
         
         data['last_updated'] = datetime.now().strftime("%Y%m%d_%H%M%S")
