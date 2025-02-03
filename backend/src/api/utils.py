@@ -33,7 +33,8 @@ class QueryRequest(FileID):
     use_llm: str
     ast_flag: str
     query: str
-    limit: int = 3
+    sys_prompt: Optional[str] = ""
+    limit: int = 5
     
 
 

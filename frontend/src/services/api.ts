@@ -119,6 +119,8 @@ export const api = {
     });
     return handleResponse<QueryResponse>(response);
   },
+
+  
 };
 
 export default api;
