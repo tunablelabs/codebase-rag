@@ -187,6 +187,7 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(lambda: get_l
             request.ast_flag,
             collection_name=collection_info.collection_name,
             user_id=request.file_id,
+            sys_prompt=request.sys_prompt,
             query=request.query,
             limit=request.limit,
             temperature=0.1
