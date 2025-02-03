@@ -104,7 +104,7 @@ export default function Sidebar({
         setIsUploading(false);
       }
       catch (err) {
-        alert("I can only parse python, Java and Javascript files");
+        alert("An Unexpected error occured, Please try again");
         throw err;
       }
       finally {

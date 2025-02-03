@@ -162,6 +162,14 @@ useEffect(() => {
                     </button>
 
                     <div className="flex items-center gap-6">
+                      <button
+                        type="button"
+                        onClick={onForceReindexChange}
+                        className="px-3 py-2 text-sm font-medium
+                          bg-primary/10 text-primary hover:bg-primary/20
+                          rounded-lg transition-all duration-300"
+                      >Force ReIndex
+                      </button>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
@@ -170,16 +178,6 @@ useEffect(() => {
                           className="checkbox checkbox-primary checkbox-sm"
                         />
                         <span className="text-sm text-base-content/80">Include AST</span>
-                      </label>
-
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={chatOptions.forceReindex}
-                          onChange={onForceReindexChange}
-                          className="checkbox checkbox-primary checkbox-sm"
-                        />
-                        <span className="text-sm text-base-content/80">Force Reindex</span>
                       </label>
 
                       <label className="flex items-center gap-2 cursor-pointer">
