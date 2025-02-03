@@ -113,6 +113,7 @@ export const api = {
         file_id: request.file_id,
         use_llm: String(request.use_llm),
         ast_flag: String(request.ast_flag),
+	sys_prompt: String(request.sys_prompt),
         query: request.query,
         limit: request.limit
       }),
