@@ -19,7 +19,7 @@ class JavaParser(BaseLanguageParser):
             return entities
         except Exception as e:
             self.logger.error(f"Error parsing Java file {file_path}: {e}")
-            return [], []
+            return []
 
     def extract_entities(self, node: Any) -> List[CodeEntity]:
         entities = []
@@ -42,51 +42,222 @@ class JavaParser(BaseLanguageParser):
                         location=self.create_code_location(entity_node),
                         language=self.get_language_name()
                     ))
+                    
+                    # Recursively process children for nested entities
+                    entities.extend(self.extract_entities(entity_node))
         return entities
-
-    def extract_string_literals(self, node: Any) -> List[StringLiteral]:
-        string_literals = []
-        for child in node.children:
-            if child.type == "string_literal":
-                text = child.text.decode("utf-8").strip('"')
-                if len(text) >= 5:  # Adjust the minimum length as needed
-                    string_literals.append(StringLiteral(
-                        id=f"string_literal_{len(string_literals)}",
-                        content=text,
-                        type="string",
-                        location=self.create_code_location(child)
-                    ))
-        return string_literals
 
     def get_entity_patterns(self) -> Dict[str, Any]:
         return {
-            'class': 'class_declaration',
-            'method': 'method_declaration',
-            'interface': 'interface_declaration'
+            # Class-related patterns
+            'class': [
+                'class_declaration',
+                'enum_declaration',
+                'record_declaration'
+            ],
+            
+            # Interface-related patterns
+            'interface': [
+                'interface_declaration',
+                'annotation_type_declaration'
+            ],
+            
+            # Method-related patterns
+            'method': [
+                'method_declaration',
+                'constructor_declaration',
+                'compact_constructor_declaration',
+                'annotation_method_declaration'
+            ],
+            
+            # Field-related patterns
+            'field': [
+                'field_declaration',
+                'enum_constant',
+                'constant_declaration'
+            ],
+            
+            # Variable declarations
+            'variable': [
+                'local_variable_declaration',
+                'variable_declarator'
+            ],
+            
+            # Generic type patterns
+            'type_parameter': [
+                'type_parameter',
+                'type_bound',
+                'wildcard_type'
+            ],
+            
+            # Exception handling
+            'exception': [
+                'catches',
+                'catch_clause',
+                'try_statement',
+                'throw_statement'
+            ],
+            
+            # Control flow
+            'control': [
+                'if_statement',
+                'for_statement',
+                'enhanced_for_statement',
+                'while_statement',
+                'do_statement',
+                'switch_expression',
+                'switch_block'
+            ],
+            
+            # Annotations
+            'annotation': [
+                'annotation',
+                'marker_annotation',
+                'single_element_annotation',
+                'normal_annotation'
+            ],
+            
+            # Package and Import
+            'package': ['package_declaration'],
+            'import': [
+                'import_declaration',
+                'static_import_declaration'
+            ],
+            
+            # Lambda and Method Reference
+            'lambda': [
+                'lambda_expression',
+                'method_reference'
+            ],
+
+            # Comments and Documentation
+            'comment': [
+                'block_comment',
+                'line_comment',
+                'javadoc_comment'
+            ]
         }
 
     def extract_metadata(self, node: Any) -> Dict[str, Any]:
         metadata = {
-            'modifiers': [],
+            # Access modifiers
             'is_public': False,
+            'is_private': False,
+            'is_protected': False,
+            'is_package_private': False,
+            
+            # Non-access modifiers
             'is_static': False,
             'is_final': False,
-            'return_type': None
+            'is_abstract': False,
+            'is_synchronized': False,
+            'is_volatile': False,
+            'is_transient': False,
+            'is_native': False,
+            'is_strictfp': False,
+            
+            # Method-specific
+            'is_constructor': False,
+            'return_type': None,
+            'throws': [],
+            'parameters': [],
+            'type_parameters': [],
+            
+            # Class-specific
+            'super_class': None,
+            'interfaces': [],
+            'is_record': False,
+            'is_enum': False,
+            
+            # Annotation-specific
+            'annotations': [],
+            
+            # Generic
+            'modifiers': [],
+            'javadoc': None
         }
 
-        for child in node.children:
+        try:
+            # Process node specific metadata
+            if node.type == 'constructor_declaration':
+                metadata['is_constructor'] = True
+            
             # Extract modifiers
-            if child.type == 'modifiers':
-                for modifier in child.children:
+            modifiers_node = next((child for child in node.children if child.type == 'modifiers'), None)
+            if modifiers_node:
+                for modifier in modifiers_node.children:
                     mod_text = modifier.text.decode('utf-8')
                     metadata['modifiers'].append(mod_text)
-                    metadata[f'is_{mod_text}'] = True
+                    if mod_text in ['public', 'private', 'protected', 'static', 'final', 
+                                  'abstract', 'synchronized', 'volatile', 'transient', 
+                                  'native', 'strictfp']:
+                        metadata[f'is_{mod_text}'] = True
             
             # Extract return type for methods
-            elif child.type == 'type_identifier' and node.type == 'method_declaration':
-                metadata['return_type'] = child.text.decode('utf-8')
-
-        return metadata
+            if node.type == 'method_declaration':
+                return_type_node = next((child for child in node.children 
+                                      if child.type in ['type_identifier', 'void_type']), None)
+                if return_type_node:
+                    metadata['return_type'] = return_type_node.text.decode('utf-8')
+            
+            # Extract throws clause
+            throws_node = next((child for child in node.children if child.type == 'throws'), None)
+            if throws_node:
+                metadata['throws'] = [
+                    child.text.decode('utf-8')
+                    for child in throws_node.children
+                    if child.type == 'type_identifier'
+                ]
+            
+            # Extract parameters
+            parameters_node = next((child for child in node.children if child.type == 'formal_parameters'), None)
+            if parameters_node:
+                for param in parameters_node.children:
+                    if param.type == 'formal_parameter':
+                        param_name = next((child.text.decode('utf-8') 
+                                        for child in param.children 
+                                        if child.type == 'identifier'), None)
+                        if param_name:
+                            metadata['parameters'].append(param_name)
+            
+            # Extract type parameters
+            type_parameters_node = next((child for child in node.children if child.type == 'type_parameters'), None)
+            if type_parameters_node:
+                metadata['type_parameters'] = [
+                    child.text.decode('utf-8')
+                    for child in type_parameters_node.children
+                    if child.type == 'type_parameter'
+                ]
+            
+            # Extract superclass and interfaces for classes
+            if node.type == 'class_declaration':
+                superclass_node = next((child for child in node.children if child.type == 'superclass'), None)
+                if superclass_node:
+                    metadata['super_class'] = superclass_node.children[0].text.decode('utf-8')
+                
+                interfaces_node = next((child for child in node.children if child.type == 'super_interfaces'), None)
+                if interfaces_node:
+                    metadata['interfaces'] = [
+                        child.text.decode('utf-8')
+                        for child in interfaces_node.children
+                        if child.type == 'type_identifier'
+                    ]
+            
+            # Extract annotations
+            for child in node.children:
+                if child.type in ['annotation', 'marker_annotation', 'single_element_annotation']:
+                    metadata['annotations'].append(child.text.decode('utf-8'))
+            
+            # Extract Javadoc if present
+            javadoc = next((child for child in node.children if child.type == 'javadoc_comment'), None)
+            if javadoc:
+                metadata['javadoc'] = javadoc.text.decode('utf-8')
+            
+            return metadata
+            
+        except Exception as e:
+            self.logger.warning(f"Error extracting metadata: {e}")
+            return metadata
 
     def get_child_by_field_name(self, node: Any, field_name: str) -> Any:
         for child in node.children:

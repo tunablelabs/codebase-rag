@@ -1,27 +1,27 @@
-from typing import List, Dict, Optional, Set
+from typing import List, Dict, Any, Optional, Set
 from tree_sitter import Node
 import logging
-
+from ..strategies import BaseChunkingStrategy, ChunkInfo
 from git_repo_parser.base_types import CodeEntity
 
-from ..strategies import (
-    BaseChunkingStrategy,
-    ChunkInfo
-)
-
 class TSImportStrategy(BaseChunkingStrategy):
-    """Handles TypeScript imports, exports, and type imports"""
+    """Handles TypeScript imports and exports"""
+    
+    MAX_IMPORTS_PER_CHUNK = 10
     
     def chunk(self, code: str, file_path: str) -> List[ChunkInfo]:
-        imports = []
+        chunks = []
         current_imports = []
         start_line = 1
-        max_import_chunk_size = 10  # Set a reasonable limit for chunk size
         
         for i, line in enumerate(code.splitlines(), 1):
             stripped = line.strip()
             
-            # Match TypeScript imports, including type imports
+            # Skip empty lines and comments
+            if not stripped or stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*'):
+                continue
+                
+            # Check for imports and exports
             if (stripped.startswith('import ') or 
                 stripped.startswith('import type ') or
                 stripped.startswith('export type ') or
@@ -31,214 +31,428 @@ class TSImportStrategy(BaseChunkingStrategy):
                 if not current_imports:
                     start_line = i
                 current_imports.append(line)
-            
-            elif current_imports and stripped:
-                # End of import block
-                if len(current_imports) >= max_import_chunk_size:
-                    content = '\n'.join(current_imports)
-                    imports.append(ChunkInfo(
-                        content=content,
-                        language='typescript',
-                        chunk_id=self._generate_chunk_id(content, file_path),
-                        type='import',
-                        start_line=start_line,
-                        end_line=i-1,
-                        imports=set(current_imports)
+                
+                # Create chunk when reaching max size
+                if len(current_imports) >= self.MAX_IMPORTS_PER_CHUNK:
+                    chunks.append(self._create_import_chunk(
+                        current_imports, file_path, start_line, i
                     ))
                     current_imports = []
-                else:
-                    # Continue adding imports together
-                    content = '\n'.join(current_imports)
-                    imports.append(ChunkInfo(
-                        content=content,
-                        language='typescript',
-                        chunk_id=self._generate_chunk_id(content, file_path),
-                        type='import',
-                        start_line=start_line,
-                        end_line=i-1,
-                        imports=set(current_imports)
-                    ))
-                    current_imports = []
+                    
+            elif current_imports:
+                # End of import block reached
+                chunks.append(self._create_import_chunk(
+                    current_imports, file_path, start_line, i-1
+                ))
+                current_imports = []
         
         # Handle remaining imports
         if current_imports:
-            content = '\n'.join(current_imports)
-            imports.append(ChunkInfo(
-                content=content,
-                language='typescript',
-                chunk_id=self._generate_chunk_id(content, file_path),
-                type='import',
-                start_line=start_line,
-                end_line=len(code.splitlines()),
-                imports=set(current_imports)
+            chunks.append(self._create_import_chunk(
+                current_imports, file_path, start_line, len(code.splitlines())
             ))
         
-        return imports
+        return chunks
+    
+    def _create_import_chunk(self, imports: List[str], file_path: str, 
+                           start_line: int, end_line: int) -> ChunkInfo:
+        """Create an import chunk with given imports"""
+        content = '\n'.join(imports)
+        return ChunkInfo(
+            content=content,
+            language='typescript',
+            chunk_id=f"{file_path}:import_{start_line}_{end_line}",
+            type='import',
+            start_line=start_line,
+            end_line=end_line,
+            imports=set(imports),
+            metadata={'num_imports': len(imports)}
+        )
 
 class TypeScriptChunker:
-    """TypeScript-specific code chunker using tree-sitter"""
+    """Enhanced TypeScript code chunker"""
+    
+    # Chunking configuration
+    MAX_CHUNK_LINES = 100    # Maximum lines per chunk
+    MIN_CHUNK_LINES = 10     # Minimum lines for standalone chunk
+    MAX_METHOD_LINES = 50    # Maximum lines for method chunks
+    MAX_GROUP_DISTANCE = 3   # Maximum lines between related entities
+    LARGE_ENTITY_THRESHOLD = 100  # Threshold for splitting entities
+    
+    # TypeScript-specific patterns
+    COHESIVE_TYPES = {
+        'class', 'interface', 'enum', 'namespace', 'module'
+    }
+    
+    RELATED_TYPES = {
+        'class': {'method', 'property', 'constructor'},
+        'interface': {'type', 'method_signature', 'property_signature'},
+        'enum': {'enum_member'},
+        'namespace': {'function', 'const', 'let', 'var', 'type'}
+    }
+    
+    # Logical split points for large entities
+    SPLIT_MARKERS = [
+        '}',           # End of block
+        '\n\n',       # Double newline
+        'function',   # Function declaration
+        'class',      # Class declaration
+        'interface',  # Interface declaration
+        'if ',        # Control structures
+        'for ',
+        'while ',
+        'switch '
+    ]
     
     def __init__(self, parser):
         self.parser = parser
         self.logger = logging.getLogger(self.__class__.__name__)
         self.import_strategy = TSImportStrategy()
-    
-    def create_chunks(self, code: str, file_path: str) -> List[ChunkInfo]:
-        """Create chunks from TypeScript code"""
+        self.file_path = None
+
+    def create_chunks_from_entities(self, entities: List[CodeEntity], file_path: str) -> List[ChunkInfo]:
+        """Create optimized chunks from TypeScript entities"""
         try:
+            self.file_path = file_path
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
             chunks = []
             
-            # Parse code with tree-sitter
-            tree = self.parser.parse(bytes(code, 'utf-8'))
-            if not tree:
-                raise ValueError("Failed to parse TypeScript code")
-            
-            # First: Handle imports
-            import_chunks = self.import_strategy.chunk(code, file_path)
+            # Handle imports first
+            import_chunks = self.import_strategy.chunk(content, file_path)
             chunks.extend(import_chunks)
             
-            # Second: Process rest of the code
-            self._process_node(tree.root_node, code, file_path, chunks)
+            # Group and process entities
+            sorted_entities = sorted(entities, key=lambda e: e.location.start_line)
+            entity_groups = self._group_entities(sorted_entities)
             
-            # Enrich chunks with dependencies
-            self._enrich_chunks(chunks, tree.root_node, code)
+            # Process each group
+            for group in entity_groups:
+                new_chunks = self._process_entity_group(group)
+                chunks.extend(new_chunks)
+            
+            # Add dependencies
+            tree = self.parser.parse(bytes(content, 'utf-8'))
+            if tree:
+                self._enrich_chunks(chunks, tree.root_node, content)
+            
+            # Final size check and merging of small chunks
+            chunks = self._optimize_chunk_sizes(chunks)
             
             return chunks
             
         except Exception as e:
-            self.logger.error(f"Error creating TypeScript chunks: {e}")
+            self.logger.warning(f"Error creating chunks from entities: {e}")
             return []
-    
-    def _process_node(self, node: Node, code: str, file_path: str, chunks: List[ChunkInfo]) -> None:
-        """Process a TypeScript AST node"""
-        try:
-            if self._is_chunk_worthy(node):
-                # Combine multiple statements or function declarations into one chunk
-                chunk_content = code[node.start_byte:node.end_byte]
-                chunk_type = self._determine_chunk_type(node)
-                
-                # Group multiple nodes if they belong together
-                chunk = ChunkInfo(
-                    content=chunk_content,
-                    language='typescript',
-                    chunk_id=self._generate_chunk_id(chunk_content, file_path),
-                    type=chunk_type,
-                    start_line=node.start_point[0] + 1,
-                    end_line=node.end_point[0] + 1,
-                    metadata=self._extract_metadata(node)
-                )
+
+    def _process_entity_group(self, group: List[CodeEntity]) -> List[ChunkInfo]:
+        """Process a group of entities, handling large entities appropriately"""
+        chunks = []
+        
+        # Check if group contains large entities that need splitting
+        total_lines = self._get_group_size(group)
+        
+        if total_lines > self.LARGE_ENTITY_THRESHOLD and len(group) == 1:
+            # Single large entity - split it
+            chunks.extend(self._split_large_entity(group[0]))
+        elif total_lines > self.LARGE_ENTITY_THRESHOLD:
+            # Multiple entities forming large group - split at logical boundaries
+            chunks.extend(self._split_large_group(group))
+        else:
+            # Normal sized group - process as before
+            chunk = self._create_chunk_from_group(group)
+            if chunk:
                 chunks.append(chunk)
         
-            # Process children nodes and consider grouping them together
-            for child in node.children:
-                self._process_node(child, code, file_path, chunks)
-    
+        return chunks
+
+    def _split_large_entity(self, entity: CodeEntity) -> List[ChunkInfo]:
+        """Split a large entity into multiple smaller chunks"""
+        chunks = []
+        lines = entity.content.splitlines()
+        current_chunk_lines = []
+        current_start_line = entity.location.start_line
+        chunk_number = 1
+        
+        for i, line in enumerate(lines):
+            current_chunk_lines.append(line)
+            
+            # Check for logical split points
+            should_split = False
+            if len(current_chunk_lines) >= self.MAX_CHUNK_LINES:
+                should_split = True
+            elif len(current_chunk_lines) > self.MIN_CHUNK_LINES:
+                # Look for natural split points
+                for marker in self.SPLIT_MARKERS:
+                    if line.strip().startswith(marker):
+                        should_split = True
+                        break
+            
+            if should_split or i == len(lines) - 1:  # Also handle last chunk
+                chunk = ChunkInfo(
+                    content='\n'.join(current_chunk_lines),
+                    language='typescript',
+                    chunk_id=f"{self.file_path}:{entity.type}_{entity.name}_{chunk_number}",
+                    type=entity.type,
+                    start_line=current_start_line,
+                    end_line=current_start_line + len(current_chunk_lines) - 1,
+                    metadata={
+                        'is_partial': True,
+                        'parent_entity': entity.name,
+                        'section_number': chunk_number,
+                        'total_sections': (len(lines) // self.MAX_CHUNK_LINES) + 1,
+                        'original_start': entity.location.start_line,
+                        'original_end': entity.location.end_line,
+                        'original_type': entity.type
+                    }
+                )
+                chunks.append(chunk)
+                current_chunk_lines = []
+                current_start_line += len(current_chunk_lines)
+                chunk_number += 1
+        
+        return chunks
+
+    def _split_large_group(self, group: List[CodeEntity]) -> List[ChunkInfo]:
+        """Split a large group of entities into logical chunks"""
+        chunks = []
+        current_group = []
+        current_lines = 0
+        
+        for entity in group:
+            entity_lines = len(entity.content.splitlines())
+            
+            if entity_lines > self.LARGE_ENTITY_THRESHOLD:
+                # Handle individual large entity
+                if current_group:
+                    chunk = self._create_chunk_from_group(current_group)
+                    if chunk:
+                        chunks.append(chunk)
+                    current_group = []
+                    current_lines = 0
+                
+                chunks.extend(self._split_large_entity(entity))
+            elif current_lines + entity_lines > self.MAX_CHUNK_LINES:
+                # Create chunk from current group and start new group
+                chunk = self._create_chunk_from_group(current_group)
+                if chunk:
+                    chunks.append(chunk)
+                current_group = [entity]
+                current_lines = entity_lines
+            else:
+                # Add to current group
+                current_group.append(entity)
+                current_lines += entity_lines
+        
+        # Handle remaining group
+        if current_group:
+            chunk = self._create_chunk_from_group(current_group)
+            if chunk:
+                chunks.append(chunk)
+        
+        return chunks
+
+    def _group_entities(self, entities: List[CodeEntity]) -> List[List[CodeEntity]]:
+        """Group related entities based on type and proximity"""
+        if not entities:
+            return []
+            
+        groups = []
+        current_group = [entities[0]]
+        
+        for entity in entities[1:]:
+            prev_entity = current_group[-1]
+            
+            # Check if entities should be grouped
+            if self._should_merge_entities(prev_entity, entity):
+                if self._get_group_size(current_group + [entity]) <= self.MAX_CHUNK_LINES:
+                    current_group.append(entity)
+                    continue
+            
+            # Start new group if can't merge
+            if current_group:
+                groups.append(current_group)
+            current_group = [entity]
+        
+        if current_group:
+            groups.append(current_group)
+        
+        return groups
+
+    def _should_merge_entities(self, entity1: CodeEntity, entity2: CodeEntity) -> bool:
+        """Determine if two entities should be merged"""
+        try:
+            # Check if entities are closely related
+            if entity1.type in self.COHESIVE_TYPES:
+                related_types = self.RELATED_TYPES.get(entity1.type, set())
+                if entity2.type in related_types:
+                    return True
+            
+            # Check for small helper functions
+            if entity1.type == 'function' and entity2.type == 'function':
+                lines1 = len(entity1.content.splitlines())
+                lines2 = len(entity2.content.splitlines())
+                if (lines1 < self.MAX_METHOD_LINES and 
+                    lines2 < self.MAX_METHOD_LINES and
+                    entity2.location.start_line - entity1.location.end_line <= self.MAX_GROUP_DISTANCE):
+                    return True
+            
+            return False
+            
         except Exception as e:
-            self.logger.warning(f"Error processing node: {e}")
-    
-    def _is_chunk_worthy(self, node: Node) -> bool:
-        """Determine if a node should be its own chunk based on context"""
-        # Example rule to keep larger chunks
-        return node.type in {
-            'function_declaration',
-            'class_declaration',
-            'method_definition',
-            'interface_declaration',
-            'type_alias_declaration',
-            'namespace_declaration'
-        } or (len(node.children) > 3)  # If a node has many children, make it a larger chunk
-    
-    def _determine_chunk_type(self, node: Node) -> str:
-        """Determine the type of TypeScript chunk"""
-        type_mapping = {
-            'function_declaration': 'function',
-            'arrow_function': 'function',
-            'class_declaration': 'class',
-            'abstract_class_declaration': 'class',
-            'method_definition': 'method',
-            'export_statement': 'export',
-            'object_pattern': 'object',
-            'class_body': 'class_body',
-            'interface_declaration': 'interface',
-            'type_alias_declaration': 'type',
-            'enum_declaration': 'enum',
-            'namespace_declaration': 'namespace',
-            'ambient_declaration': 'ambient'
-        }
-        return type_mapping.get(node.type, 'code')
-    
-    def _extract_metadata(self, node: Node) -> Dict:
-        """Extract TypeScript-specific metadata"""
+            self.logger.warning(f"Error checking entity merge: {e}")
+            return False
+
+    def _get_group_size(self, entities: List[CodeEntity]) -> int:
+        """Get total lines in a group of entities"""
+        if not entities:
+            return 0
+            
+        start_line = min(e.location.start_line for e in entities)
+        end_line = max(e.location.end_line for e in entities)
+        return end_line - start_line + 1
+
+    def _create_chunk_from_group(self, entities: List[CodeEntity]) -> Optional[ChunkInfo]:
+        """Create a chunk from a group of entities"""
+        if not entities:
+            return None
+            
+        try:
+            entities = sorted(entities, key=lambda e: e.location.start_line)
+            chunk_type = self._determine_group_type(entities)
+            content = self._combine_entity_contents(entities)
+            
+            metadata = {
+                'primary_type': chunk_type,
+                'entity_types': list(set(e.type for e in entities)),
+                'num_entities': len(entities),
+                'declarations': [e.name for e in entities],
+                'exports': any(e.metadata.get('is_export', False) for e in entities),
+                'decorators': [d for e in entities 
+                             for d in e.metadata.get('decorators', [])]
+            }
+            
+            return ChunkInfo(
+                content=content,
+                language='typescript',
+                chunk_id=f"{self.file_path}:{chunk_type}_{entities[0].location.start_line}",
+                type=chunk_type,
+                start_line=entities[0].location.start_line,
+                end_line=entities[-1].location.end_line,
+                metadata=metadata
+            )
+            
+        except Exception as e:
+            self.logger.warning(f"Error creating chunk from group: {e}")
+            return None
+
+    def _determine_group_type(self, entities: List[CodeEntity]) -> str:
+        """Determine the primary type for a group"""
+        type_priority = ['class', 'interface', 'namespace', 'enum', 
+                        'function', 'type', 'variable']
+        
+        # First check priority types
+        for priority_type in type_priority:
+            if any(e.type == priority_type for e in entities):
+                return priority_type
+        
+        # Default to most common type
+        type_counts = {}
+        for entity in entities:
+            type_counts[entity.type] = type_counts.get(entity.type, 0) + 1
+        
+        return max(type_counts.items(), key=lambda x: x[1])[0]
+
+    def _combine_entity_contents(self, entities: List[CodeEntity]) -> str:
+        """Combine entity contents preserving formatting"""
+        if len(entities) == 1:
+            return entities[0].content
+        
+        contents = []
+        last_end_line = 0
+        
+        for entity in sorted(entities, key=lambda e: e.location.start_line):
+            if last_end_line > 0:
+                line_diff = entity.location.start_line - last_end_line
+                if line_diff > 1:
+                    contents.append('\n' * min(line_diff - 1, 2))
+            
+            contents.append(entity.content)
+            last_end_line = entity.location.end_line
+        
+        return '\n'.join(filter(None, contents))
+
+    def _optimize_chunk_sizes(self, chunks: List[ChunkInfo]) -> List[ChunkInfo]:
+        """Optimize chunk sizes by merging small chunks"""
+        optimized = []
+        current = None
+        
+        for chunk in sorted(chunks, key=lambda c: c.start_line):
+            if chunk.type == 'import':
+                optimized.append(chunk)
+                continue
+                
+            if not current:
+                current = chunk
+                continue
+            
+            # Try to merge small chunks
+            current_lines = len(current.content.splitlines())
+            chunk_lines = len(chunk.content.splitlines())
+            
+            if (current_lines < self.MIN_CHUNK_LINES and 
+                chunk_lines < self.MIN_CHUNK_LINES and
+                current_lines + chunk_lines <= self.MAX_CHUNK_LINES and
+                not current.metadata.get('is_partial') and 
+                not chunk.metadata.get('is_partial')):
+                # Merge chunks
+                current = self._merge_chunks(current, chunk)
+            else:
+                optimized.append(current)
+                current = chunk
+        
+        if current:
+            optimized.append(current)
+        
+        return optimized
+
+    def _merge_chunks(self, chunk1: ChunkInfo, chunk2: ChunkInfo) -> ChunkInfo:
+        """Merge two chunks into one"""
+        content = f"{chunk1.content}\n\n{chunk2.content}"
+        
+        # Combine metadata
         metadata = {
-            'node_type': node.type,
-            'is_export': False,
-            'is_async': False,
-            'is_generator': False,
-            'is_abstract': False,
-            'is_interface': node.type == 'interface_declaration',
-            'is_type_alias': node.type == 'type_alias_declaration',
-            'is_enum': node.type == 'enum_declaration',
-            'is_namespace': node.type == 'namespace_declaration',
-            'is_ambient': node.type == 'ambient_declaration',
-            'type_parameters': [],
-            'type_constraints': [],
-            'modifiers': []
+            'primary_type': chunk1.metadata['primary_type'],
+            'entity_types': list(set(chunk1.metadata['entity_types'] + 
+                                   chunk2.metadata['entity_types'])),
+            'num_entities': (chunk1.metadata['num_entities'] + 
+                           chunk2.metadata['num_entities']),
+            'declarations': (chunk1.metadata['declarations'] + 
+                           chunk2.metadata['declarations']),
+            'exports': (chunk1.metadata['exports'] or 
+                       chunk2.metadata['exports'])
         }
         
-        try:
-            # Check for exports
-            parent = node.parent
-            while parent:
-                if parent.type == 'export_statement':
-                    metadata['is_export'] = True
-                    break
-                parent = parent.parent
-            
-            # Check for modifiers and other properties
-            for child in node.children:
-                if child.type == 'async':
-                    metadata['is_async'] = True
-                elif child.type == 'generator_function':
-                    metadata['is_generator'] = True
-                elif child.type == 'abstract':
-                    metadata['is_abstract'] = True
-                elif child.type in ['public', 'private', 'protected', 'readonly', 'static']:
-                    metadata['modifiers'].append(child.type)
-                    
-            # Extract type parameters if present
-            type_params = self._get_type_parameters(node)
-            if type_params:
-                metadata['type_parameters'] = type_params
-                
-        except Exception as e:
-            self.logger.warning(f"Error extracting metadata: {e}")
-            
-        return metadata
-    
-    def _get_type_parameters(self, node: Node) -> List[str]:
-        """Extract type parameters from a node"""
-        try:
-            type_params = []
-            for child in node.children:
-                if child.type == 'type_parameters':
-                    for param in child.children:
-                        if param.type == 'type_parameter':
-                            param_text = param.text.decode('utf-8')
-                            type_params.append(param_text)
-            return type_params
-        except Exception as e:
-            self.logger.warning(f"Error extracting type parameters: {e}")
-            return []
-    
-    def _extract_dependencies(self, content: str, name_to_chunk: Dict[str, ChunkInfo]) -> Set[str]:
+        return ChunkInfo(
+            content=content,
+            language='typescript',
+            chunk_id=f"{chunk1.chunk_id}_merged",
+            type=chunk1.type,
+            start_line=chunk1.start_line,
+            end_line=chunk2.end_line,
+            metadata=metadata
+        )
+
+    def _extract_dependencies(self, content: str, 
+                            name_to_chunk: Dict[str, ChunkInfo]) -> Set[str]:
         """Extract dependencies from chunk content"""
         deps = set()
         try:
-            # Parse the chunk
             tree = self.parser.parse(bytes(content, 'utf-8'))
             
             def visit_node(node: Node):
-                if node.type == 'identifier' or node.type == 'type_identifier':
+                if node.type in ['identifier', 'type_identifier']:
                     name = node.text.decode('utf-8')
                     if name in name_to_chunk:
                         deps.add(name)
@@ -251,24 +465,17 @@ class TypeScriptChunker:
         except Exception as e:
             self.logger.warning(f"Error extracting dependencies: {e}")
             return deps
-    
-    def _enrich_chunks(self, chunks: List[ChunkInfo], root_node: Node, code: str) -> None:
+
+    def _enrich_chunks(self, chunks: List[ChunkInfo], root_node: Node, 
+                      code: str) -> None:
         """Add dependencies and relationships to chunks"""
         try:
             # Build name to chunk mapping
             name_to_chunk = {}
             for chunk in chunks:
-                if chunk.type in ['function', 'class', 'method', 'interface', 'type', 'enum', 'namespace']:
-                    # Extract name from first line
-                    first_line = chunk.content.splitlines()[0]
-                    words = first_line.split()
-                    for word in words:
-                        if word not in ['function', 'class', 'interface', 'type', 'enum', 'namespace', 
-                                      'async', 'export', 'default', 'abstract']:
-                            name = word.split('(')[0].strip()
-                            name = name.split('<')[0].strip()  # Remove type parameters
-                            name_to_chunk[name] = chunk
-                            break
+                if chunk.type != 'import':
+                    for name in chunk.metadata.get('declarations', []):
+                        name_to_chunk[name] = chunk
             
             # Find dependencies
             for chunk in chunks:
@@ -278,51 +485,3 @@ class TypeScriptChunker:
                     
         except Exception as e:
             self.logger.warning(f"Error enriching chunks: {e}")
-    
-    def get_chunk_summary(self, chunk: ChunkInfo) -> Dict:
-        """Get a summary of a chunk's contents"""
-        return {
-            'type': chunk.type,
-            'language': chunk.language,
-            'start_line': chunk.start_line,
-            'end_line': chunk.end_line,
-            'size': len(chunk.content),
-            'num_lines': len(chunk.content.splitlines()),
-            'dependencies': list(chunk.dependencies),
-            'imports': list(chunk.imports),
-            'metadata': chunk.metadata
-        }
-    
-    def create_chunks_from_entities(self, entities: List[CodeEntity], file_path: str) -> List[ChunkInfo]:
-        """Create chunks from parsed entities."""
-        chunks = []
-        for entity in entities:
-            chunk_info = ChunkInfo(
-                content=entity.content,
-                language=entity.language,
-                chunk_id=f"{file_path}:{entity.name}",
-                type=entity.type,
-                start_line=entity.location.start_line,
-                end_line=entity.location.end_line,
-                metadata=entity.metadata
-            )
-            chunks.append(chunk_info)
-        
-        # Read file to get imports as they might not be in entities
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-                
-            # Add import chunks
-            import_chunks = self.import_strategy.chunk(content, file_path)
-            chunks.extend(import_chunks)
-            
-            # Enrich with dependencies
-            tree = self.parser.parse(bytes(content, 'utf-8'))
-            if tree:
-                self._enrich_chunks(chunks, tree.root_node, content)
-                
-        except Exception as e:
-            self.logger.warning(f"Error processing imports and dependencies: {e}")
-            
-        return chunks

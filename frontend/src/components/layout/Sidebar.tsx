@@ -214,25 +214,31 @@ export default function Sidebar({
       )}
 
       <div className="flex-1 space-y-1.5">
-        {sessions.map((session) => (
-          <button
-            key={session.id}
-            onClick={() => setCurrentSessionId(session.id)}
-            className={`w-full px-4 py-3 rounded-lg transition-all text-left group
-              ${currentSessionId === session.id
-                ? 'bg-primary/10 text-primary hover:bg-primary/20'
-                : 'hover:bg-base-200 text-base-content/80 hover:text-base-content'
-              }
-            `}
-          >
-            <div className="flex items-center gap-2">
-              <span className="flex-1 truncate">{session.name}</span>
-              {currentSessionId === session.id && (
-                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              )}
-            </div>
-          </button>
-        ))}
+        {sessions && sessions.length > 0 ? (
+          sessions.map((session) => (
+            <button
+              key={session.id}
+              onClick={() => setCurrentSessionId(session.id)}
+              className={`w-full px-4 py-1 rounded-lg transition-all text-left group
+                ${currentSessionId === session.id
+                  ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                  : 'hover:bg-base-200 text-base-content/80 hover:text-base-content'
+                }
+              `}
+            >
+              <div className="flex items-center gap-2">
+                <span className="flex-1 truncate">
+                  {session.name || 'New Chat'}
+                </span>
+                {currentSessionId === session.id && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                )}
+              </div>
+            </button>
+          ))
+        ) : (
+          <div className="text-center text-base-content/60">No chat sessions yet</div>
+        )}
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ export interface BaseApiResponse {
 
 // session and chat related types
 export interface Message {
+  user?: string;
+  bot?: string;
   type: 'user' | 'bot';
   text: string;
   timestamp: string;
@@ -32,6 +34,14 @@ export interface ChatOptions {
 // API Response types
 export interface CreateSessionResponse extends BaseApiResponse {
   file_id: string;
+}
+
+// New type created for Listing Chat Sessions
+export interface ListChatSession extends BaseApiResponse {
+  file_id: string;
+  last_message_preview: string;
+  repo_name: string;
+  messages: Message[];
 }
 
 export interface UploadResponse extends BaseApiResponse {
