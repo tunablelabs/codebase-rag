@@ -1,4 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
+
+import CodeBlock  from './CodeBlock';
 import { FileListComponent } from "../file/FileList";
 import ShowStats from "../file/ShowStats";
 import { ChatOptions, Session } from "@/types";
@@ -39,7 +41,11 @@ interface MainContentProps {
   onForceReindexChange: () => void;
   onLlmEvaluator: () => void;
 }
-
+interface ContentBlock {
+  type: 'text' | 'code';
+  content: string;
+  language?: string;
+}
 function MainContent({
   currentSession,
   isFilesVisible,
@@ -136,7 +142,41 @@ function MainContent({
       </div>
     );
   };
-
+  const detectCodeBlocks = (text: string): ContentBlock[] => {
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const blocks: ContentBlock[] = [];
+    let lastIndex = 0;
+    let match;
+  
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      // Add text before code block
+      if (match.index > lastIndex) {
+        blocks.push({
+          type: 'text',
+          content: text.slice(lastIndex, match.index)
+        });
+      }
+  
+      // Add code block
+      blocks.push({
+        type: 'code',
+        language: match[1] || '',
+        content: match[2].trim()
+      });
+  
+      lastIndex = match.index + match[0].length;
+    }
+  
+    // Add remaining text after last code block
+    if (lastIndex < text.length) {
+      blocks.push({
+        type: 'text',
+        content: text.slice(lastIndex)
+      });
+    }
+  
+    return blocks;
+  };
   const renderMetrics = (metric: any, index: number) => {
     if (!metric) return null;
 
@@ -184,7 +224,25 @@ function MainContent({
       </div>
     );
   };
-
+  const renderMessageContent = (text: string) => {
+    const blocks = detectCodeBlocks(text);
+    
+    return blocks.map((block, index) => {
+      if (block.type === 'code') {
+        return <CodeBlock key={index} code={block.content} language={block.language} />;
+      }
+      return (
+        <pre key={index} style={{ 
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          fontSize: '0.875rem',
+          lineHeight: '1.5',
+          whiteSpace: 'pre-wrap'
+        }}>
+          {block.content}
+        </pre>
+      );
+    });
+  };
   const renderMessageBubble = (msg: any, index: number) => {
     const isUser = msg.type === "user";
     const sourceFilesMatch = msg.text.match(/Source files:(.*?)(?=\n|$)/i);
@@ -218,14 +276,7 @@ function MainContent({
               : "bg-base-100 dark:bg-base-200/90 text-base-content"
             }
           `}>
-            <pre style={{ 
-              fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-              fontSize: '0.875rem',
-              lineHeight: '1.5',
-              whiteSpace: 'pre-wrap'
-            }}>
-              {messageText}
-            </pre>
+          {renderMessageContent(messageText)}
           </div>
 
           {sourceFilesMatch && renderSourceFiles(sourceFilesMatch[1])}

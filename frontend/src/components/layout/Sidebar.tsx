@@ -1,7 +1,6 @@
 import { Session } from "@/types";
 import { useState, useEffect } from "react";
 import { FolderUp, Plus, X } from 'lucide-react';
-//import { useSession } from "@/hooks/useSession";
 import { useSessionContext } from "@/context/SessionProvider";
 import { useFileUpload } from "@/hooks/useFileUpload"
 import { useGithubUrl } from "@/hooks/useGithubUrl"
@@ -13,9 +12,13 @@ interface Stats {
   };
 }
 
+interface APIResponse {
+  stats: Stats;
+}
+
 interface SidebarProps {
   onFileUpload: (files: FileList) => void;
-  handlestatsUpload: (stats: Stats) =>void;
+  handlestatsUpload: (stats: Stats) => void;
 }
 
 declare module 'react' {
@@ -55,7 +58,6 @@ export default function Sidebar({
     }
   }, [sessionIdf]);
 
- 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
     if (!selectedFiles) return;
@@ -65,10 +67,9 @@ export default function Sidebar({
     onFileUpload(selectedFiles);
   };
 
-  const handleUrlChange = async (url : string) => {
+  const handleUrlChange = async (url: string) => {
     setNewSessionName(url);
     setGithubUrl(url);
-    //uploadUrl(url);
   };
 
   const extractRepoName = (githubUrl: string) => {
@@ -79,24 +80,24 @@ export default function Sidebar({
 
   const handleCreateSession = async () => {
     if (newSessionName) {
-
       setIsUploading(true);
       
-      try
-      {
+      try {
         if (githubUrl) {
-          let newses= extractRepoName(githubUrl)
+          let newses = extractRepoName(githubUrl)
           setNewSessionName(newses)
-          let stats = await uploadUrl(githubUrl); // Upload GitHub repo only when button is clicked
-          handlestatsUpload(stats.stats);
-          
+          const rawResponse = await uploadUrl(githubUrl);
+          const response = rawResponse as unknown as APIResponse;
+          if (response?.stats) {
+            handlestatsUpload(response.stats);
+          }
         } else if (selectedFiles) {
-          let stats = await uploadFiles(selectedFiles); 
-          console.log('session_fromfiles',stats.stats);
-          handlestatsUpload(stats.stats);
-          //createSession(newSessionName,ses_name);
-          //setNewSessionName("");
-       
+          const rawResponse = await uploadFiles(selectedFiles);
+          const response = rawResponse as unknown as APIResponse;
+          console.log('session_fromfiles', response?.stats);
+          if (response?.stats) {
+            handlestatsUpload(response.stats);
+          }
         }
       
         setGithubUrl("");
@@ -105,7 +106,7 @@ export default function Sidebar({
         setIsUploading(false);
       }
       catch (err) {
-        alert("An Unexpected error occured, Please try again");
+        alert("An Unexpected error occurred, Please try again");
         throw err;
       }
       finally {
@@ -114,7 +115,6 @@ export default function Sidebar({
         setInputVisible(false);
         setIsUploading(false);
       }
-      
     }
   };
 
@@ -147,7 +147,7 @@ export default function Sidebar({
                 value={newSessionName}
                 onChange={(e) => {
                   const value = e.target.value;
-                  setNewSessionName(value);  // Update the state with the input value
+                  setNewSessionName(value);
                   handleUrlChange(value); 
                 }}
                 className="input input-bordered w-full"
@@ -176,29 +176,29 @@ export default function Sidebar({
                     className="btn btn-primary flex-1"
                     disabled={isUploading}
                   >
-                      {isUploading ? (
-                        <>
-                          <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                              fill="none"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8v4l4-4-4-4v4a8 8 0 00-8 8z"
-                            />
-                          </svg>
-                          Uploading...
-                        </>
-                      ) : (
-                        "Create Session"
-                      )}
+                    {isUploading ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            fill="none"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4l4-4-4-4v4a8 8 0 00-8 8z"
+                          />
+                        </svg>
+                        Uploading...
+                      </>
+                    ) : (
+                      "Create Session"
+                    )}
                   </button>
 
                   <button

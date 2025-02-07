@@ -5,7 +5,11 @@ interface Stats {
   language_distribution: Record<string, string>;
 }
 
-const ShowStats: React.FC<Stats> = ({ stats }: Stats) => {
+interface StatsProps {
+  stats: Stats;
+}
+
+const ShowStats: React.FC<StatsProps> = ({ stats }) => {
   return (
     <div className="space-y-4 bg-base-100 dark:bg-base-200/10 p-4 rounded-lg 
       shadow-lg backdrop-blur-sm border border-base-200/50 dark:border-base-600">
@@ -34,7 +38,7 @@ const ShowStats: React.FC<Stats> = ({ stats }: Stats) => {
                   {language}
                 </span>
                 <span className="text-sm text-base-content/80 font-mono">
-                  {percentage}
+                  {String(percentage)}
                 </span>
               </div>
             ))}
