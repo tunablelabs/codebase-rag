@@ -5,33 +5,52 @@ interface Stats {
   language_distribution: Record<string, string>;
 }
 
+interface StatsProps {
+  stats: Stats;
+}
 
-const ShowStats: React.FC<Stats> = ({ stats }: Stats) => {
-  console.log(stats)
-  console.log('inside stats',stats.language_distribution)
-  return(
-    <div className="space-y-2 bg-white/70 p-4 rounded-lg shadow-lg backdrop-blur-sm dark:bg-slate-900/70">
-      <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">
-        Repository Statistics
-      </h3>
-      <p className="mt-2 text-base-content/80">Total Code Files: {stats.total_code_files}</p>
+const ShowStats: React.FC<StatsProps> = ({ stats }) => {
+  return (
+    <div className="space-y-4 bg-base-100 dark:bg-base-200/10 p-4 rounded-lg 
+      shadow-lg backdrop-blur-sm border border-base-200/50 dark:border-base-600">
+      <div>
+        <h3 className="font-medium text-base-content">
+          Repository Statistics
+        </h3>
+        <p className="text-sm text-base-content/70 mt-1">
+          Total Code Files: {stats.total_code_files}
+        </p>
+      </div>
 
       {stats.language_distribution && Object.keys(stats.language_distribution).length > 0 ? (
-        <>
-          <h4 className="text-lg font-medium text-base-content">Language Distribution:</h4>
-          <ul className="space-y-2">
+        <div className="space-y-3">
+          <h4 className="font-medium text-base-content">
+            Language Distribution
+          </h4>
+          <div className="space-y-2">
             {Object.entries(stats.language_distribution).map(([language, percentage]) => (
-              <li key={language}>
-                <strong>{language}:</strong> {percentage}
-              </li>
+              <div 
+                key={language}
+                className="flex items-center justify-between p-2 rounded-md
+                  bg-base-200/50 dark:bg-base-300/30"
+              >
+                <span className="text-sm text-base-content">
+                  {language}
+                </span>
+                <span className="text-sm text-base-content/80 font-mono">
+                  {String(percentage)}
+                </span>
+              </div>
             ))}
-          </ul>
-        </>
+          </div>
+        </div>
       ) : (
-        <p className="text-gray-500">No language data available</p>
+        <p className="text-sm text-base-content/60">
+          No language distribution data available
+        </p>
       )}
     </div>
-  )
+  );
 };
 
 export default ShowStats;

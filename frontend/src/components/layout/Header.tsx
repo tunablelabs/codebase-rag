@@ -5,22 +5,21 @@ import { ThemeToggle } from '@/app/ThemeToggle';
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 bg-base-100/95 backdrop-blur-md border-b border-base-200">
-      <div className="w-full px-4">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center ml-0">
+    <header className="sticky top-0 z-50 bg-base-100/95 backdrop-blur-md border-b border-sky-800/50 h-12">
+      <div className="w-full px-3">
+        <div className="flex h-full items-center justify-between">
+          <div className="flex items-center">
             <h1 className="text-2xl font-semibold tracking-tight flex items-center">
               <span className="bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">Code</span>
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent ml-1.5">RAG</span>
-              <span className="text-base-content/80 ml-1.5">Assistant</span>
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent ml-1">RAG</span>
+              <span className="text-base-content/80 ml-1">Assistant</span>
             </h1>
           </div>
 
-          <nav className="flex items-center space-x-6">
+          <nav className="flex items-center space-x-4">
             <NavLink
-              className="group flex items-center px-3 py-2 text-sm font-medium 
-                text-base-content/70 hover:text-primary
-                transition-colors relative"
+              className="group flex items-center px-2 py-1 text-sm font-medium 
+                text-base-content/70 hover:text-primary transition-colors relative"
               href="/"
             >
               <span className="relative">
@@ -32,16 +31,15 @@ export default function Header() {
 
             <a
               href="https://github.com"
-              className="group flex items-center px-3 py-2 text-sm font-medium 
-                text-base-content/70 hover:text-primary
-                transition-colors relative"
+              className="group flex items-center px-2 py-1 text-sm font-medium 
+                text-base-content/70 hover:text-primary transition-colors relative"
               target="_blank"
               rel="noopener noreferrer"
             >
-              <span className="flex items-center gap-2 relative">
-                <GitHubLogoIcon className="w-5 h-5" />
+              <span className="flex items-center gap-1 relative">
+                <GitHubLogoIcon className="w-4 h-4" />
                 <span>GitHub</span>
-                <ExternalLink className="w-4 h-4 opacity-0 -translate-y-1 
+                <ExternalLink className="w-3 h-3 opacity-0 -translate-y-1 
                   group-hover:opacity-100 group-hover:translate-y-0 
                   transition-all duration-300" />
               </span>
