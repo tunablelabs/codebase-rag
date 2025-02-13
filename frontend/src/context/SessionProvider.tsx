@@ -6,7 +6,7 @@ import { QueryMetrics } from "@/types/index";
 import { Session } from '@/types';
 interface SessionContextType {
   sessions: Session[];
-  currentSession: Session;
+  currentSession?: Session;
   currentSessionId: string | null;
   isLoading: boolean;
   createSession: (name: string, id: string) => Session;
@@ -22,7 +22,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const hasFetchedRef = useRef(false);
-  var currentSession = sessions.find(s => s.id === currentSessionId);
+  const currentSession = sessions.find(s => s.id === currentSessionId);
 
   const fetchSessions = async () => {
     try {
@@ -107,7 +107,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <SessionContext.Provider value={{ sessions, currentSessionId, currentSession, isLoading, createSession, addMessageToSession, setCurrentSessionId}}>
+    <SessionContext.Provider value={{ sessions, setSessions, currentSessionId, currentSession, isLoading, createSession, addMessageToSession, setCurrentSessionId}}>
       {children}
     </SessionContext.Provider>
   );

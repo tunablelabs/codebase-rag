@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+/*import { useState, useEffect, useCallback } from 'react';
 import api from '@/services/api';
 
 interface UseStatsReturn {
@@ -27,3 +27,5 @@ export function useStats(): UseStatsReturn {
   }, []);
   return { isLoading, error, fetchStats };
 }
+
+*/

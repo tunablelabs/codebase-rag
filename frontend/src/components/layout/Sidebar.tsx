@@ -1,4 +1,3 @@
-import { Session } from "@/types";
 import { useState, useEffect } from "react";
 import { FolderUp, Plus, X } from 'lucide-react';
 import { useSessionContext } from "@/context/SessionProvider";
@@ -42,8 +41,6 @@ export default function Sidebar({
   
   useEffect(() => {
     if (sessionId) {
-      console.log(sessions)
-      console.log("Session ID updated:", sessionId);
       createSession(newSessionName,sessionId);
       setNewSessionName("");
     }
@@ -51,8 +48,6 @@ export default function Sidebar({
 
   useEffect(() => {
     if (sessionIdf) {
-      console.log(sessions)
-      console.log("Session ID updated:", sessionIdf);
       createSession(newSessionName,sessionIdf);
       setNewSessionName("");
     }
@@ -84,7 +79,7 @@ export default function Sidebar({
       
       try {
         if (githubUrl) {
-          let newses = extractRepoName(githubUrl)
+          const newses = extractRepoName(githubUrl)
           setNewSessionName(newses)
           const rawResponse = await uploadUrl(githubUrl);
           const response = rawResponse as unknown as APIResponse;

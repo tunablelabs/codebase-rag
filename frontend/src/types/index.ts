@@ -4,7 +4,7 @@ export interface BaseApiResponse {
 }
 
 // session and chat related types
-export interface Message {
+export interface Message {  
   user?: string;
   bot?: string;
   type: 'user' | 'bot';

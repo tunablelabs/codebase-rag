@@ -1,5 +1,5 @@
 "use client";
-
+/*
 import { useState, FormEvent } from "react";
 
 interface ChatFormProps {
@@ -151,3 +151,5 @@ export default function ChatForm({
     </form>
   );
 }
+
+*/

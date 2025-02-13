@@ -3,17 +3,20 @@ import api from '@/services/api';
 
 interface GithubUploadHookReturn {
   isUploading: boolean;
-  uploadError: string;
   stats: Stats | null;
-  uploadUrl: (githubUrl: string) => Promise<string | undefined>;
+  uploadUrl: (githubUrl: string) => Promise<Stats | undefined>;
   sessionId: string | null;
 }
+
 interface Stats {
-  total_code_files: number;
-  language_distribution: {
-    [language: string]: string; // For example: {"Python": "100%"}
+  stats: {
+    total_code_files: number;
+    language_distribution: {
+      [language: string]: string; // Example: {"Python": "100%"}
+    };
   };
 }
+
 export function useGithubUrl(): GithubUploadHookReturn {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -50,12 +53,11 @@ export function useGithubUrl(): GithubUploadHookReturn {
       await api.storeRepository(sessionResponse.file_id);
       const stats = await api.getStats(sessionResponse.file_id);
       console.log('stats',stats)
-      setStats(stats); 
-
+      //setStats(stats); 
       return stats;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Upload failed';
-      setUploadError(errorMessage);
+      //setUploadError(errorMessage);
       throw err;
     } finally {
       setIsUploading(false);
@@ -65,7 +67,6 @@ export function useGithubUrl(): GithubUploadHookReturn {
   return {
     stats,
     isUploading,
-    uploadError,
     uploadUrl,
     sessionId
   };

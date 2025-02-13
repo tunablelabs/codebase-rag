@@ -2,7 +2,7 @@ import { useState, FormEvent } from 'react';
 import ChatForm from './ChatForm';
 import ChatWindow from './ChatWindow';
 import FileList from '../file/FileList';
-
+/*
 interface Message {
   type: 'user' | 'bot';
   text: string;
@@ -108,3 +108,4 @@ export default function ChatContainer({
     </div>
   );
 }
+  */

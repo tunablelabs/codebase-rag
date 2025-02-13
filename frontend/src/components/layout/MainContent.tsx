@@ -30,7 +30,7 @@ interface MainContentProps {
   currentSession: Session | null;
   isFilesVisible: boolean;
   isStatsVisible: boolean;
-  stats: Stats;
+  stats?: Stats | null;
   files: string[];
   isPending: boolean;
   chatOptions: ChatOptions;

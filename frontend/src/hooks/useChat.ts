@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+/*import { useState, useCallback } from 'react';
 import { Message, ChatOptions, QueryResponse } from '@/types';
 import api from '@/services/api';
 
@@ -56,7 +56,7 @@ export function useChat(options: ChatOptions): ChatHookReturn {
     } finally {
       setIsPending(false);
     }
-  }, [options.sessionId, options.astFlag]);
+  }, [options.sessionId]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -71,3 +71,5 @@ export function useChat(options: ChatOptions): ChatHookReturn {
     clearMessages
   };
 }
+
+*/

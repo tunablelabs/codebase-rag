@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
+import { useState, FormEvent, useEffect, useCallback } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import MainContent from "@/components/layout/MainContent";
 import { ChatOptions, Session } from "@/types";
-//import { useSession } from "@/hooks/useSession";
 import { useSessionContext } from "@/context/SessionProvider";
-import { useFileUpload } from "@/hooks/useFileUpload"
 import api from "@/services/api";
 import { QueryRequest, QueryResponse } from "@/types";
 
@@ -23,7 +21,7 @@ export default function ChatPage() {
   interface Stats {
     total_code_files: number;
     language_distribution: {
-      [language: string]: string; // For example: {"Python": "100%"}
+      [language: string]: string; 
     };
   }
 
@@ -32,13 +30,14 @@ export default function ChatPage() {
   const [isPending, setIsPending] = useState(false);
   const [isFilesVisible, setIsFilesVisible] = useState(false);
   const [isStatsVisible, setIsStatsVisible] = useState(false);
-  const { sessions, currentSessionId, createSession, setSessions, currentSession, updateSession, addMessageToSession } = useSessionContext();
-  const handlestatsUpload = async(stats: Stats)=>{
+  const { sessions, currentSessionId, createSession, setSessions, currentSession, addMessageToSession } = useSessionContext();
+  
+  const handlestatsUpload = useCallback((stats: Stats) => {
     console.log('handle stats upload invoked', stats)
     setIsStatsVisible(true);
     setStats(stats);
     console.log(stats.total_code_files, stats.language_distribution)
-  };
+  }, []);
   const handleFileUpload = async (fileList: FileList) => {
     try {
       const folderSet = new Set<string>();
@@ -53,20 +52,6 @@ export default function ChatPage() {
       //const fileNames = Array.from(fileList).map((file) => file.webkitRelativePath || file.name); 
       setFiles(uniqueFolders);
       setIsFilesVisible(true);
-  
-      /*const folderPath = fileList[0].webkitRelativePath.split("/")[0];
-      const formData = new FormData();
-      Array.from(fileList).forEach((file) => {
-        console.log(file)
-        formData.append("files", file);
-      });
-      formData.append("", folderPath);
-      const response = await fetch("http://127.0.0.1:8000/upload-folder/", {
-        method: "POST",
-        body: formData
-      });
-      const result = await response.json();
-      console.log(result) */
   
     } catch (error) {
       console.error("File upload failed:", error);
@@ -93,7 +78,7 @@ export default function ChatPage() {
     };
 
     updateStatsForSession();
-  }, [currentSessionId]);
+  }, [currentSessionId, handlestatsUpload]);
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsPending(true);
@@ -134,8 +119,6 @@ export default function ChatPage() {
       setIsPending(false);
       setIsFilesVisible(true);
 
-      const timestamp = new Date().toISOString();
-      const data = response.response;
       addMessageToSession(currentSessionId, {
         type: "bot",
         text: response.response,

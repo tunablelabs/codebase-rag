@@ -64,7 +64,7 @@ export default function SessionList({
               )}
               {session.createdAt && (
                 <span className="text-xs opacity-50">
-                  {format(new Date(session.createdAt), 'MMM d, yyyy')}
+                  
                 </span>
               )}
             </div>

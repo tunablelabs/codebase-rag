@@ -6,7 +6,7 @@ interface FileUploadHookReturn {
   files: UploadedFile[];
   isUploading: boolean;
   uploadError: string | null;
-  uploadFiles: (fileList: FileList) => Promise<UploadedFile[] | undefined>;
+  uploadFiles: (fileList: FileList) => Promise<Stats | undefined>;
   clearFiles: () => void;
   sessionIdf: string | null;
 }
