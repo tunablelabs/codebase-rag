@@ -3,6 +3,7 @@ os: linux
 files:
  - source: /
    destination: /home/ec2-user/codebase-rag
+   file_existsBehavior: OVERWRITE
 hooks:
   AfterInstall:
    - location: deploy.sh
