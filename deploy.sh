@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
-chmod +x /home/ec2-user/codebase-rag/frontend/deploy.sh
+chmod +x /home/ec2-user/codebase-rag/deploy.sh
 
 echo "Starting deployment..."
 cd /home/ec2-user/codebase-rag
