@@ -4,6 +4,12 @@ files:
  - source: /
    destination: /home/ec2-user/codebase-rag
    overwrite: yes
+   
+permissions:
+  - object: /home/ec2-user/codebase-rag/.github
+    pattern: "**"
+    except:
+      - workflows/workflow.yml
 hooks:
   AfterInstall:
    - location: deploy.sh
