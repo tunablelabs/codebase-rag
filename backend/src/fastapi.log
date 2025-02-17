@@ -1,0 +1,14 @@
+INFO:     Will watch for changes in these directories: ['/home/ec2-user/codebase-rag/backend/src']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [1476122] using StatReload
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+/home/ec2-user/.local/lib/python3.11/site-packages/deepeval/__init__.py:52: UserWarning: You are using deepeval version 2.1.9, however version 2.3.7 is available. You should consider upgrading via the "pip install --upgrade deepeval" command.
+  warnings.warn(
+INFO:     Started server process [1476130]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Downloading required NLTK package: stopwords
+INFO:     122.164.238.23:63384 - "GET /docs HTTP/1.1" 200 OK
+INFO:     122.164.238.23:63384 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     122.164.238.23:0 - "GET /docs HTTP/1.1" 200 OK
