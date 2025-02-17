@@ -1,7 +1,8 @@
 #!/bin/bash
 set -x
 chmod +x /home/ec2-user/codebase-rag/deploy.sh
-
+echo "Removing old files..."
+rm -rf /home/ec2-user/codebase-rag/.github/workflows/workflow.yml
 echo "Starting deployment..."
 cd /home/ec2-user/codebase-rag
 # Pull latest changes
