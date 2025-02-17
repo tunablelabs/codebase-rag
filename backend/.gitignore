@@ -12,4 +12,4 @@ chat_history/
 .npmrc
 package-lock.json
 venv
-tree_build/
+/tree_build

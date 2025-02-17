@@ -2693,3 +2693,53 @@ INFO:     103.118.190.4:56254 - "GET /codex/chat/history HTTP/1.1" 200 OK
 INFO:     165.154.227.138:0 - "GET /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php HTTP/1.1" 404 Not Found
 /usr/lib64/python3.11/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
   warnings.warn('resource_tracker: There appear to be %d '
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+/usr/local/lib/python3.11/site-packages/deepeval/__init__.py:52: UserWarning: You are using deepeval version 2.1.9, however version 2.3.8 is available. You should consider upgrading via the "pip install --upgrade deepeval" command.
+  warnings.warn(
+INFO:     Will watch for changes in these directories: ['/home/ec2-user/codebase-rag/backend/src']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [1843077] using StatReload
+Downloading required NLTK package: stopwords
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+None of PyTorch, TensorFlow >= 2.0, or Flax have been found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+/usr/local/lib/python3.11/site-packages/deepeval/__init__.py:52: UserWarning: You are using deepeval version 2.1.9, however version 2.3.8 is available. You should consider upgrading via the "pip install --upgrade deepeval" command.
+  warnings.warn(
+INFO:     Started server process [1843180]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Downloading required NLTK package: stopwords
+INFO:     103.118.190.4:59430 - "GET /docs HTTP/1.1" 200 OK
+INFO:     103.118.190.4:59430 - "GET /api/openapi.json HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     103.118.190.4:0 - "GET /codex/chat/history HTTP/1.1" 200 OK
+INFO:     103.118.190.4:0 - "GET /codex/chat/history HTTP/1.1" 200 OK
+INFO:     103.118.190.4:0 - "GET /codex/chat/history HTTP/1.1" 200 OK
+INFO:     103.118.190.4:62216 - "GET /docs HTTP/1.1" 200 OK
+INFO:     103.118.190.4:62216 - "GET /api/openapi.json HTTP/1.1" 200 OK
+INFO:     44.214.10.150:9535 - "HEAD /api HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     103.118.190.4:0 - "GET /codex/chat/history HTTP/1.1" 200 OK
+/home/ec2-user/codebase-rag/backend/project_repos/TimeSeriesAnalysis
+INFO:     103.118.190.4:0 - "POST /codex/stats HTTP/1.1" 200 OK
+INFO:     119.119.13.82:0 - "GET /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     204.188.228.90:56678 - "GET / HTTP/1.1" 404 Not Found
+INFO:     204.188.228.90:56688 - "GET /login HTTP/1.1" 404 Not Found
+INFO:     103.118.190.4:0 - "GET /codex/chat/history HTTP/1.1" 200 OK
+INFO:     158.160.162.122:0 - "GET /.env HTTP/1.1" 404 Not Found
+INFO:     158.160.162.122:0 - "GET /.env.local HTTP/1.1" 404 Not Found
+INFO:     158.160.162.122:0 - "GET /.env.production HTTP/1.1" 404 Not Found
+INFO:     158.160.162.122:0 - "GET /.env.bak HTTP/1.1" 404 Not Found
+INFO:     158.160.162.122:0 - "GET /config.env HTTP/1.1" 404 Not Found
+INFO:     158.160.162.122:0 - "GET /.env.dist HTTP/1.1" 404 Not Found
+INFO:     158.160.162.122:0 - "GET /.env.dev HTTP/1.1" 404 Not Found
+INFO:     158.160.162.122:0 - "GET /.env.staging HTTP/1.1" 404 Not Found
+INFO:     196.251.66.31:36804 - "POST /portal HTTP/1.1" 404 Not Found
+INFO:     103.118.190.4:0 - "GET /codex/chat/history HTTP/1.1" 200 OK
+INFO:     103.118.190.4:0 - "GET /codex/chat/history HTTP/1.1" 200 OK

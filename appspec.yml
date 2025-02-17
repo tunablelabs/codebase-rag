@@ -2,7 +2,7 @@ version: 0.0
 os: linux
 files:
  - source: /
-   destination: /home/ec2-user/codebase-rag/frontend
+   destination: /home/ec2-user/codebase-rag
 hooks:
   AfterInstall:
    - location: deploy.sh

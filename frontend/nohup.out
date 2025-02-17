@@ -1,0 +1,1227 @@
+
+> together-nextjs-chat@0.1.0 start
+> next start -p 80
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:80
+
+ ✓ Starting...
+ ✓ Ready in 394ms
+
+> together-nextjs-chat@0.1.0 start
+> next start
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 400ms
+
+> together-nextjs-chat@0.1.0 start
+> next start pp 80
+
+ ⨯ Invalid project directory provided, no such directory: /home/ec2-user/codebase-rag/frontend/pp
+
+> together-nextjs-chat@0.1.0 start
+> next start -p 80
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:80
+
+ ✓ Starting...
+ ✓ Ready in 408ms
+
+> together-nextjs-chat@0.1.0 start
+> next start -p 80
+
+ ⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::80
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:280:16
+    at new Promise (<anonymous>)
+    at startServer (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:191:11)
+    at Module.nextStart (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/cli/next-start.js:25:40)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/bin/next:105:856 {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 80
+}
+
+> together-nextjs-chat@0.1.0 dev
+> next dev -p 80
+
+ ⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::80
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:280:16
+    at new Promise (<anonymous>)
+    at startServer (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:191:11)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:310:52
+    at Span.traceAsyncFn (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/trace/trace.js:154:26)
+    at process.<anonymous> (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:310:35)
+    at process.emit (node:events:517:28) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 80
+}
+[?25h
+
+> together-nextjs-chat@0.1.0 dev
+> next dev -p 80
+
+ ⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::80
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:280:16
+    at new Promise (<anonymous>)
+    at startServer (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:191:11)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:310:52
+    at Span.traceAsyncFn (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/trace/trace.js:154:26)
+    at process.<anonymous> (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:310:35)
+    at process.emit (node:events:517:28) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 80
+}
+[?25h
+
+> together-nextjs-chat@0.1.0 dev
+> next dev -p 80 3000
+
+ ⨯ Invalid project directory provided, no such directory: /home/ec2-user/codebase-rag/frontend/3000
+
+> together-nextjs-chat@0.1.0 dev
+> next dev -p 80 3000
+
+ ⨯ Invalid project directory provided, no such directory: /home/ec2-user/codebase-rag/frontend/3000
+
+> together-nextjs-chat@0.1.0 dev
+> next dev -p 80 -p 3000
+
+ ⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:280:16
+    at new Promise (<anonymous>)
+    at startServer (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:191:11)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:310:52
+    at Span.traceAsyncFn (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/trace/trace.js:154:26)
+    at process.<anonymous> (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:310:35)
+    at process.emit (node:events:517:28) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+[?25h
+
+> together-nextjs-chat@0.1.0 dev
+> next dev -p 80 -p 3000
+
+ ⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:280:16
+    at new Promise (<anonymous>)
+    at startServer (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:191:11)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:310:52
+    at Span.traceAsyncFn (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/trace/trace.js:154:26)
+    at process.<anonymous> (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:310:35)
+    at process.emit (node:events:517:28) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 3000
+}
+[?25h
+
+> together-nextjs-chat@0.1.0 start
+> next start
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/router-server.js:62:23)
+    at async Server.<anonymous> (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:249:36)
+
+> together-nextjs-chat@0.1.0 start
+> next start
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 406ms
+
+> together-nextjs-chat@0.1.0 start
+> next start
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/router-server.js:62:23)
+    at async Server.<anonymous> (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:249:36)
+
+> together-nextjs-chat@0.1.0 start
+> next start
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 411ms
+
+> together-nextjs-chat@0.1.0 start
+> next start
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 425ms
+
+> together-nextjs-chat@0.1.0 start
+> next start
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/router-server.js:62:23)
+    at async Server.<anonymous> (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:249:36)
+
+> together-nextjs-chat@0.1.0 dev
+> next dev -p 80
+
+ ⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::80
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:280:16
+    at new Promise (<anonymous>)
+    at startServer (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:191:11)
+    at /home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:310:52
+    at Span.traceAsyncFn (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/trace/trace.js:154:26)
+    at process.<anonymous> (/home/ec2-user/codebase-rag/frontend/node_modules/next/dist/server/lib/start-server.js:310:35)
+    at process.emit (node:events:517:28) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '::',
+  port: 80
+}
+[?25h
+
+> together-nextjs-chat@0.1.0 dev
+> next dev -p 80 -p 3000
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 1954ms
+ ○ Compiling / ...
+
+🌼   daisyUI 4.12.23
+├─ ✔︎ 2 themes added		https://daisyui.com/docs/themes
+╰─ ★ Star daisyUI on GitHub	https://github.com/saadeghi/daisyui
+
+ ✓ Compiled / in 4s (624 modules)
+Sessions Data: []
+Sessions Data: []
+Sessions Data: []
+ GET / 200 in 956ms
+ ✓ Compiled in 642ms (301 modules)
+ ○ Compiling /favicon.ico ...
+ ✓ Compiled /favicon.ico in 511ms (354 modules)
+ GET /favicon.ico 200 in 630ms
+Sessions Data: []
+ GET / 200 in 188ms
+Sessions Data: []
+ GET / 200 in 31ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1073ms (613 modules)
+ GET /node_modules/next/dist/client/components/app-router.js 404 in 1443ms
+ GET /node_modules/next/dist/client/components/client-page.js 404 in 1112ms
+ GET /node_modules/next/dist/client/components/render-from-template-context.js 404 in 1111ms
+ GET /chunks/app/page.js 404 in 1110ms
+ GET /node_modules/next/dist/client/components/error-boundary.js 404 in 1103ms
+ GET /node_modules/next/dist/client/components/layout-router.js 404 in 1097ms
+ GET /chunks/app-pages-internals.js 404 in 1047ms
+ GET /chunks/app/layout.js 404 in 1013ms
+ GET /node_modules/next/dist/client/link.js 404 in 948ms
+ GET /.env 404 in 41ms
+Sessions Data: []
+ POST / 200 in 64ms
+Sessions Data: []
+ GET / 200 in 27ms
+ GET /wp-includes/ID3/license.txt 404 in 24ms
+ GET /xmlrpc.php?rsd 404 in 21ms
+ GET /blog/wp-includes/wlwmanifest.xml 404 in 24ms
+ GET /web/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /wordpress/wp-includes/wlwmanifest.xml 404 in 21ms
+ GET /wp/wp-includes/wlwmanifest.xml 404 in 18ms
+ GET /2020/wp-includes/wlwmanifest.xml 404 in 26ms
+ GET /2019/wp-includes/wlwmanifest.xml 404 in 20ms
+ GET /2021/wp-includes/wlwmanifest.xml 404 in 30ms
+ GET /shop/wp-includes/wlwmanifest.xml 404 in 22ms
+ GET /wp1/wp-includes/wlwmanifest.xml 404 in 22ms
+ GET /test/wp-includes/wlwmanifest.xml 404 in 20ms
+ GET /site/wp-includes/wlwmanifest.xml 404 in 21ms
+ GET /cms/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 27ms
+ GET /vendor/phpunit/phpunit/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /vendor/phpunit/src/Util/PHP/eval-stdin.php 404 in 23ms
+ GET /vendor/phpunit/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /vendor/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 24ms
+ GET /vendor/phpunit/phpunit/LICENSE/eval-stdin.php 404 in 21ms
+ GET /lib/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /lib/phpunit/phpunit/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /lib/phpunit/src/Util/PHP/eval-stdin.php 404 in 23ms
+ GET /lib/phpunit/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /lib/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 28ms
+ GET /phpunit/phpunit/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /phpunit/Util/PHP/eval-stdin.php 404 in 17ms
+ GET /test/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 19ms
+ GET /testing/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 23ms
+ GET /tests/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /yii/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 19ms
+ GET /admin/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 28ms
+ GET /ws/ec/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 27ms
+ GET /zend/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 22ms
+ GET /ws/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /www/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /all/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 33ms
+ GET /advanced/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 19ms
+ GET /app/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /apps/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /back/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /backend/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 25ms
+ GET /backup/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /beta/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /blog/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /blog/www/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 61ms
+ GET /cms/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 22ms
+ GET /config/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /core/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /core/app/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 15ms
+ GET /crm/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /demo/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /dev/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /develop/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /ec/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 22ms
+ GET /ecc/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /git/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 17ms
+ GET /lab/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /laravel/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 24ms
+ GET /laravel_api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 29ms
+ GET /laravel_web/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 19ms
+ GET /live/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 19ms
+ GET /local/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 29ms
+ GET /modules/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 19ms
+ GET /new/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 17ms
+ GET /old/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /panel/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /pid/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 30ms
+ GET /pkm/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 22ms
+ GET /pms/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /portal/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 38ms
+ GET /pos/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /pos/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /production/api/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 19ms
+ GET /production/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 29ms
+ GET /public/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /server/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /site/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 22ms
+ GET /workspace/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /web/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 17ms
+ GET /codex/chat/history 404 in 32ms
+Sessions Data: []
+ GET / 200 in 29ms
+Sessions Data: []
+ GET / 200 in 30ms
+ ✓ Compiled /favicon.ico in 347ms (354 modules)
+ GET /favicon.ico 200 in 473ms
+Sessions Data: []
+ GET / 200 in 178ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 620ms (613 modules)
+ GET /.git/config 404 in 834ms
+ GET /.env 404 in 56ms
+ GET /.env.local 404 in 24ms
+ GET /info 404 in 21ms
+ GET /phpinfo 404 in 23ms
+ GET /config/.env 404 in 27ms
+ GET /.git/config 404 in 22ms
+ GET /.env.production 404 in 22ms
+ GET /.svn/entries 404 in 17ms
+ GET /vendor/.env 404 in 21ms
+ GET /docker-compose.yml 404 in 31ms
+ GET /access.log 404 in 21ms
+ GET /nginx.conf 404 in 20ms
+ GET /cgit/config 404 in 29ms
+ GET /apache2.conf 404 in 17ms
+ GET /.htaccess 404 in 26ms
+ GET /.kube/config 404 in 19ms
+ GET /node_modules/package.json 404 in 20ms
+ GET /server-status 404 in 14ms
+ GET /.well-known/security.txt 404 in 17ms
+ GET /.well-known/openid-configuration 404 in 28ms
+ GET /.well-known/apple-app-site-association 404 in 19ms
+ GET /suitecrm/logfile.log 404 in 30ms
+ GET /manager/html 404 in 17ms
+ GET /config.php 404 in 15ms
+ GET /web.config 404 in 22ms
+ GET /zabbix/index.php 404 in 16ms
+ GET /nagios/cgi-bin/status.cgi 404 in 20ms
+ GET /.svn/text-base/index.php.svn-base 404 in 17ms
+ GET /backend/.env 404 in 22ms
+ GET /.svn/text-base/config.php.svn-base 404 in 18ms
+ GET /index.php.bak 404 in 18ms
+ GET /.npmrc 404 in 14ms
+ GET /config.old 404 in 14ms
+ GET /phpinfo.php 404 in 19ms
+ GET /.DS_Store 404 in 16ms
+ GET /index.php.swp 404 in 15ms
+ GET /config.php.swo 404 in 23ms
+ GET /var/logs/prod.log 404 in 25ms
+ GET /uploads 404 in 18ms
+ GET /files 404 in 18ms
+ GET /.htpasswd 404 in 16ms
+ GET /storage/logs/laravel.log 404 in 20ms
+ GET /logs/access.log 404 in 18ms
+ GET /logs/error.log 404 in 26ms
+ GET /.editorconfig 404 in 21ms
+ GET /.eslintrc 404 in 19ms
+ GET /config.yml 404 in 24ms
+ GET /database.yml 404 in 27ms
+ GET /config.json 404 in 21ms
+ GET /secrets.json 404 in 20ms
+ GET /package.json 404 in 22ms
+ GET /composer.json 404 in 14ms
+ GET /composer.lock 404 in 32ms
+ GET /.gitlab-ci.yml 404 in 18ms
+ GET /.idea/workspace.xml 404 in 15ms
+ GET /.bash_history 404 in 26ms
+ GET /.vscode/settings.json 404 in 28ms
+ GET /wp-content/debug.log 404 in 20ms
+ GET /debug/vars 404 in 15ms
+ GET /env 404 in 15ms
+ GET /.aws/credentials 404 in 21ms
+ GET /.gcloud/credentials.json 404 in 19ms
+ GET /wp-config.php 404 in 16ms
+ GET /.git/objects 404 in 17ms
+ GET /.bzr/branch/branch.conf 404 in 24ms
+ GET /.hg/dirstate 404 in 18ms
+ GET /.hg/hgrc 404 in 23ms
+ GET /portal/.env 404 in 28ms
+ GET /env/.env 404 in 17ms
+ GET /app/.env 404 in 19ms
+ GET /dev/.env 404 in 17ms
+ GET /new/.env 404 in 22ms
+ GET /new/.env.local 404 in 17ms
+ GET /new/.env.staging 404 in 23ms
+ GET /_phpinfo.php 404 in 19ms
+ GET /_profiler/phpinfo 404 in 22ms
+ GET /_profiler/phpinfo/info.php 404 in 98ms
+ GET /wp-config 404 in 20ms
+ GET /aws-secret.yaml 404 in 17ms
+ GET /awstats/.env 404 in 13ms
+ GET /conf/.env 404 in 15ms
+ GET /cron/.env 404 in 15ms
+ GET /www/.env 404 in 21ms
+ GET /env.backup 404 in 15ms
+ GET /xampp/phpinfo.php 404 in 19ms
+ GET /laravel/info.php 404 in 23ms
+ GET /js/.env 404 in 20ms
+ GET /laravel/.env 404 in 24ms
+ GET /laravel/core/.env 404 in 16ms
+ GET /mail/.env 404 in 14ms
+ GET /mailer/.env 404 in 18ms
+ GET /laravel/.env.local 404 in 18ms
+ GET /laravel/core/.env.production 404 in 28ms
+ GET /main/.env 404 in 22ms
+Sessions Data: []
+ GET / 200 in 49ms
+Sessions Data: []
+ GET / 200 in 20ms
+Sessions Data: []
+ GET / 200 in 22ms
+Sessions Data: []
+ GET / 200 in 38ms
+Sessions Data: []
+ GET / 200 in 26ms
+ GET /chunks/app/page.js 404 in 20ms
+ GET /node_modules/next/dist/client/components/app-router.js 404 in 26ms
+ GET /node_modules/next/dist/client/components/client-page.js 404 in 24ms
+Sessions Data: []
+ GET / 200 in 34ms
+ ✓ Compiled /favicon.ico in 329ms (354 modules)
+ GET /favicon.ico 200 in 431ms
+Sessions Data: []
+ GET / 200 in 175ms
+Sessions Data: []
+ GET / 200 in 36ms
+ ✓ Compiled /_not-found in 409ms (613 modules)
+ GET /.env 404 in 622ms
+Sessions Data: []
+ POST / 200 in 57ms
+Sessions Data: []
+ GET / 200 in 47ms
+ GET /js/twint_ch.js 404 in 32ms
+ ✓ Compiled /favicon.ico in 286ms (355 modules)
+ GET /favicon.ico 200 in 397ms
+Sessions Data: []
+ GET / 200 in 194ms
+ POST /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 38ms
+ GET /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 30ms
+ GET /covenantuser/login 404 in 36ms
+Sessions Data: []
+ GET / 200 in 39ms
+ GET /new/login 404 in 36ms
+ GET /init 404 in 24ms
+ GET /login 404 in 26ms
+ GET /admin/console/index.html 404 in 28ms
+Sessions Data: []
+ GET / 200 in 40ms
+Sessions Data: []
+ GET / 200 in 39ms
+Sessions Data: []
+ GET / 200 in 39ms
+ GET /chunks/app/page.js 404 in 27ms
+ GET /node_modules/next/dist/client/components/error-boundary.js 404 in 34ms
+ GET /chunks/app-pages-internals.js 404 in 33ms
+ GET /chunks/app/layout.js 404 in 34ms
+ GET /node_modules/next/dist/client/components/layout-router.js 404 in 69ms
+ GET /node_modules/next/dist/client/components/client-page.js 404 in 34ms
+ GET /node_modules/next/dist/client/components/render-from-template-context.js 404 in 23ms
+ GET /node_modules/next/dist/client/link.js 404 in 64ms
+ GET /node_modules/next/dist/client/components/app-router.js 404 in 43ms
+Sessions Data: []
+ GET / 200 in 37ms
+ GET /js/twint_ch.js 404 in 31ms
+ GET /favicon.ico 200 in 21ms
+Sessions Data: []
+ GET /?XDEBUG_SESSION_START=phpstorm 200 in 39ms
+Sessions Data: []
+ GET / 200 in 33ms
+Sessions Data: []
+ GET / 200 in 31ms
+ GET /favicon.ico 200 in 11ms
+Sessions Data: []
+ GET / 200 in 35ms
+Sessions Data: []
+ GET / 200 in 37ms
+ GET /favicon.ico 200 in 9ms
+Sessions Data: []
+ GET / 200 in 43ms
+Sessions Data: []
+ GET / 200 in 37ms
+ GET /console 404 in 27ms
+ GET /_ignition/execute-solution 404 in 32ms
+Sessions Data: []
+ GET / 200 in 33ms
+Sessions Data: []
+ GET / 200 in 38ms
+Sessions Data: []
+ GET / 200 in 68ms
+Sessions Data: []
+ GET / 200 in 47ms
+ GET /actuator/gateway/routes 404 in 22ms
+Sessions Data: []
+ GET / 200 in 44ms
+Sessions Data: []
+ GET / 200 in 31ms
+Sessions Data: []
+ GET / 200 in 29ms
+ GET /favicon.ico 200 in 10ms
+Sessions Data: []
+ GET / 200 in 32ms
+Sessions Data: []
+ GET / 200 in 38ms
+ GET /favicon.ico 200 in 12ms
+Sessions Data: []
+ GET / 200 in 41ms
+ GET /favicon.ico 200 in 9ms
+ GET /geoserver 404 in 34ms
+Sessions Data: []
+ GET / 200 in 28ms
+ GET /favicon.ico 200 in 10ms
+Sessions Data: []
+ GET / 200 in 27ms
+ GET /favicon.ico 200 in 9ms
+Sessions Data: []
+ GET / 200 in 40ms
+Sessions Data: []
+ GET / 200 in 30ms
+ POST /hello.world?%ADd+allow_url_include%3d1+%ADd+auto_prepend_file%3dphp://input 404 in 24ms
+ GET /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 24ms
+ GET /vendor/phpunit/phpunit/Util/PHP/eval-stdin.php 404 in 23ms
+ GET /vendor/phpunit/src/Util/PHP/eval-stdin.php 404 in 22ms
+ GET /vendor/phpunit/Util/PHP/eval-stdin.php 404 in 24ms
+ GET /vendor/phpunit/phpunit/LICENSE/eval-stdin.php 404 in 20ms
+ GET /vendor/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 31ms
+ GET /phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /phpunit/phpunit/Util/PHP/eval-stdin.php 404 in 22ms
+ GET /phpunit/src/Util/PHP/eval-stdin.php 404 in 25ms
+ GET /phpunit/Util/PHP/eval-stdin.php 404 in 29ms
+ GET /lib/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 17ms
+ GET /lib/phpunit/phpunit/Util/PHP/eval-stdin.php 404 in 24ms
+ GET /lib/phpunit/src/Util/PHP/eval-stdin.php 404 in 17ms
+ GET /lib/phpunit/Util/PHP/eval-stdin.php 404 in 19ms
+ GET /lib/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /laravel/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 23ms
+ GET /www/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 17ms
+ GET /ws/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /yii/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 22ms
+ GET /zend/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 19ms
+ GET /ws/ec/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /V2/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /tests/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 27ms
+ GET /test/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /testing/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 24ms
+ GET /demo/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 25ms
+ GET /cms/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /crm/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /admin/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /backup/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 17ms
+ GET /blog/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 24ms
+ GET /workspace/drupal/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /panel/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 28ms
+ GET /public/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 19ms
+ GET /apps/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /app/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 23ms
+ GET /index.php?s=/index/\think\app/invokefunction&function=call_user_func_array&vars[0]=md5&vars[1][]=Hello 404 in 16ms
+ GET /public/index.php?s=/index/\think\app/invokefunction&function=call_user_func_array&vars[0]=md5&vars[1][]=Hello 404 in 29ms
+ GET /index.php?lang=../../../../../../../../usr/local/lib/php/pearcmd&+config-create+/&/<?echo(md5("hi"));?>+/tmp/index1.php 404 in 18ms
+ GET /index.php?lang=../../../../../../../../tmp/index1 404 in 17ms
+ GET /containers/json 404 in 29ms
+Sessions Data: []
+ GET / 200 in 25ms
+ GET /admin/console/index.html 404 in 30ms
+ GET /init 404 in 38ms
+ GET /login 404 in 37ms
+ GET /covenantuser/login 404 in 22ms
+ GET /new/login 404 in 27ms
+ GET /.env 404 in 42ms
+ GET /.env 404 in 25ms
+Sessions Data: []
+ POST / 200 in 31ms
+Sessions Data: []
+ GET / 200 in 41ms
+ GET /favicon.ico 200 in 11ms
+Sessions Data: []
+ GET / 200 in 27ms
+Sessions Data: []
+ GET / 200 in 31ms
+ GET /favicon.ico 200 in 12ms
+Sessions Data: []
+ GET / 200 in 43ms
+ GET /wp-includes/ID3/license.txt 404 in 27ms
+ GET /xmlrpc.php?rsd 404 in 21ms
+ GET /blog/wp-includes/wlwmanifest.xml 404 in 23ms
+ GET /web/wp-includes/wlwmanifest.xml 404 in 26ms
+ GET /wordpress/wp-includes/wlwmanifest.xml 404 in 23ms
+ GET /wp/wp-includes/wlwmanifest.xml 404 in 30ms
+ GET /2020/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /2019/wp-includes/wlwmanifest.xml 404 in 20ms
+ GET /2021/wp-includes/wlwmanifest.xml 404 in 17ms
+ GET /shop/wp-includes/wlwmanifest.xml 404 in 17ms
+ GET /wp1/wp-includes/wlwmanifest.xml 404 in 28ms
+ GET /test/wp-includes/wlwmanifest.xml 404 in 15ms
+ GET /site/wp-includes/wlwmanifest.xml 404 in 17ms
+ GET /cms/wp-includes/wlwmanifest.xml 404 in 21ms
+ GET /.git/config 404 in 23ms
+Sessions Data: []
+ GET / 200 in 28ms
+Sessions Data: []
+ GET / 200 in 30ms
+ GET /favicon.ico 200 in 10ms
+Sessions Data: []
+ GET / 200 in 31ms
+ GET /favicon.ico 200 in 10ms
+Sessions Data: []
+ GET / 200 in 31ms
+Sessions Data: []
+ GET / 200 in 33ms
+Sessions Data: []
+ GET / 200 in 40ms
+ GET /favicon.ico 200 in 9ms
+Sessions Data: []
+ GET / 200 in 27ms
+ GET /phpinfo.php 404 in 24ms
+ GET /info.php 404 in 25ms
+ GET /phpinfo 404 in 20ms
+ GET /php_info.php 404 in 34ms
+ GET /test.php 404 in 29ms
+ GET /_profiler/phpinfo 404 in 21ms
+ GET /.env 404 in 21ms
+ GET /config/.env 404 in 25ms
+ GET /.env.production 404 in 24ms
+ GET /.env.local 404 in 25ms
+Sessions Data: []
+ GET / 200 in 39ms
+ GET /register 404 in 27ms
+ GET /contact 404 in 20ms
+ GET /.AWS_/credentials 404 in 21ms
+ GET /karma.conf.json 404 in 29ms
+ GET /index.php 404 in 26ms
+ GET /.aws/credentials 404 in 24ms
+Sessions Data: []
+ GET / 200 in 38ms
+Sessions Data: []
+ GET / 200 in 41ms
+ GET /.env 404 in 26ms
+Sessions Data: []
+ POST / 200 in 36ms
+ GET /.git/config 404 in 21ms
+Sessions Data: []
+ GET / 200 in 34ms
+ GET /.env 404 in 27ms
+Sessions Data: []
+ GET / 200 in 33ms
+ GET /favicon.ico 200 in 9ms
+ GET /favicon.ico 200 in 10ms
+Sessions Data: []
+ GET / 200 in 39ms
+Sessions Data: []
+ GET / 200 in 30ms
+ GET /wp-includes/wlwmanifest.xml 404 in 25ms
+ GET /xmlrpc.php?rsd 404 in 24ms
+Sessions Data: []
+ GET / 200 in 24ms
+ GET /blog/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /web/wp-includes/wlwmanifest.xml 404 in 17ms
+ GET /wordpress/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /website/wp-includes/wlwmanifest.xml 404 in 20ms
+ GET /wp/wp-includes/wlwmanifest.xml 404 in 21ms
+ GET /news/wp-includes/wlwmanifest.xml 404 in 23ms
+ GET /2020/wp-includes/wlwmanifest.xml 404 in 20ms
+ GET /2019/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /shop/wp-includes/wlwmanifest.xml 404 in 35ms
+ GET /wp1/wp-includes/wlwmanifest.xml 404 in 14ms
+ GET /test/wp-includes/wlwmanifest.xml 404 in 18ms
+ GET /wp2/wp-includes/wlwmanifest.xml 404 in 23ms
+ GET /site/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /cms/wp-includes/wlwmanifest.xml 404 in 16ms
+ GET /sito/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /.env 404 in 28ms
+Sessions Data: []
+ POST / 200 in 39ms
+ GET /codex/chat/history 404 in 27ms
+Sessions Data: []
+ GET / 200 in 29ms
+Sessions Data: []
+ GET / 200 in 30ms
+ GET /favicon.ico 200 in 9ms
+ GET /favicon.ico 200 in 11ms
+Sessions Data: []
+ GET / 200 in 32ms
+ GET /favicon.ico 200 in 9ms
+ GET /favicon.ico 200 in 10ms
+Sessions Data: []
+ GET / 200 in 129ms
+ GET /favicon.ico 200 in 12ms
+Sessions Data: []
+ GET / 200 in 30ms
+Sessions Data: []
+ GET / 200 in 27ms
+Sessions Data: []
+ GET / 200 in 27ms
+Sessions Data: []
+ GET / 200 in 32ms
+Sessions Data: []
+ GET / 200 in 36ms
+Sessions Data: []
+ GET / 200 in 30ms
+ GET /favicon.ico 200 in 12ms
+Sessions Data: []
+ GET / 200 in 28ms
+ GET /.env 404 in 25ms
+ GET /.env 404 in 27ms
+ GET /.env 404 in 26ms
+Sessions Data: []
+ POST / 200 in 29ms
+Sessions Data: []
+ GET / 200 in 35ms
+Sessions Data: []
+ GET / 200 in 37ms
+Sessions Data: []
+ GET / 200 in 32ms
+ GET /favicon.ico 200 in 12ms
+Sessions Data: []
+ GET / 200 in 35ms
+ GET /favicon.ico 200 in 9ms
+ GET /favicon.ico 200 in 12ms
+ GET /favicon.ico 200 in 11ms
+Sessions Data: []
+ GET /?XDEBUG_SESSION_START=phpstorm 200 in 32ms
+Sessions Data: []
+ GET / 200 in 29ms
+ GET /actuator/gateway/routes 404 in 25ms
+Sessions Data: []
+ GET / 200 in 52ms
+Sessions Data: []
+ GET / 200 in 34ms
+ GET /favicon.ico 200 in 10ms
+Sessions Data: []
+ GET / 200 in 33ms
+ GET /favicon.ico 200 in 9ms
+ GET /ads.txt 404 in 25ms
+Sessions Data: []
+ GET / 200 in 39ms
+Sessions Data: []
+ GET / 200 in 37ms
+ GET /favicon.ico 200 in 18ms
+Sessions Data: []
+ GET / 200 in 34ms
+Sessions Data: []
+ GET / 200 in 52ms
+ GET /codex/chat/history 404 in 27ms
+ GET /codex/chat/history 404 in 23ms
+ GET /codex/chat/history 404 in 23ms
+ GET /codex/chat/history 404 in 31ms
+Sessions Data: []
+ GET / 200 in 28ms
+ GET /favicon.ico 200 in 15ms
+Sessions Data: []
+ GET / 200 in 33ms
+ GET /.env 404 in 24ms
+Sessions Data: []
+ POST / 200 in 34ms
+ GET /.env 404 in 39ms
+Sessions Data: []
+ POST / 200 in 33ms
+Sessions Data: []
+ GET / 200 in 55ms
+Sessions Data: []
+ GET / 200 in 31ms
+Sessions Data: []
+ GET / 200 in 33ms
+ GET /favicon.ico 200 in 9ms
+ GET /.env 404 in 26ms
+ POST /hello.world?%ADd+allow_url_include%3d1+%ADd+auto_prepend_file%3dphp://input 404 in 24ms
+ GET /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 23ms
+ GET /vendor/phpunit/phpunit/Util/PHP/eval-stdin.php 404 in 18ms
+ POST /hello.world?%ADd+allow_url_include%3d1+%ADd+auto_prepend_file%3dphp://input 404 in 20ms
+ GET /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 22ms
+ GET /vendor/phpunit/phpunit/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /vendor/phpunit/src/Util/PHP/eval-stdin.php 404 in 17ms
+Sessions Data: []
+ GET / 200 in 34ms
+ GET /phpinfo 404 in 38ms
+ GET /phpinfo.php 404 in 26ms
+ GET /portal/.env 404 in 30ms
+ GET /env/.env 404 in 28ms
+ GET /app/.env 404 in 20ms
+ GET /dev/.env 404 in 20ms
+ GET /new/.env 404 in 20ms
+ GET /new/.env.local 404 in 22ms
+ GET /new/.env.production 404 in 19ms
+ GET /new/.env.staging 404 in 22ms
+ GET /_phpinfo.php 404 in 21ms
+ GET /_profiler/phpinfo 404 in 27ms
+ GET /_profiler/phpinfo/info.php 404 in 18ms
+ GET /_profiler/phpinfo/phpinfo.php 404 in 21ms
+ GET /wp-config 404 in 17ms
+ GET /aws-secret.yaml 404 in 16ms
+ GET /awstats/.env 404 in 20ms
+ GET /conf/.env 404 in 26ms
+ GET /cron/.env 404 in 18ms
+ GET /www/.env 404 in 21ms
+ GET /docker/.env 404 in 15ms
+ GET /docker/app/.env 404 in 18ms
+ GET /env.backup 404 in 17ms
+ GET /xampp/phpinfo.php 404 in 22ms
+ GET /lara/info.php 404 in 28ms
+ GET /lara/phpinfo.php 404 in 20ms
+ GET /laravel/info.php 404 in 19ms
+ GET /.vscode/.env 404 in 22ms
+ GET /js/.env 404 in 79ms
+ GET /laravel/.env 404 in 18ms
+ GET /laravel/core/.env 404 in 18ms
+ GET /mail/.env 404 in 18ms
+ GET /mailer/.env 404 in 20ms
+ GET /nginx/.env 404 in 20ms
+ GET /public/.env 404 in 17ms
+ GET /site/.env 404 in 20ms
+ GET /xampp/.env 404 in 26ms
+ GET /.docker/laravel/app/.env 404 in 18ms
+ GET /laravel/.env.local 404 in 17ms
+ GET /laravel/.env.production 404 in 19ms
+ GET /laravel/.env.staging 404 in 16ms
+ GET /laravel/core/.env.local 404 in 23ms
+ GET /laravel/core/.env.production 404 in 17ms
+ GET /laravel/core/.env.staging 404 in 24ms
+ GET /main/.env 404 in 15ms
+ GET /node_modules/.env 404 in 18ms
+ GET /home/.env 404 in 15ms
+ GET /home/phpinfo 404 in 22ms
+Sessions Data: []
+ GET / 200 in 33ms
+ GET /.env 404 in 18ms
+ GET /.env.bak 404 in 17ms
+ GET /.env.live 404 in 22ms
+ GET /.env.swp 404 in 17ms
+ GET /.env.uat 404 in 14ms
+ GET /.env.example 404 in 15ms
+ GET /.aws/credentials 404 in 19ms
+ GET /core/.env 404 in 16ms
+ GET /.env.old 404 in 17ms
+ GET /.env.www 404 in 18ms
+ GET /.env_1 404 in 30ms
+ GET /.env_sample 404 in 15ms
+ GET /_static/.env 404 in 17ms
+ GET /.docker/.env 404 in 29ms
+ GET /.env.backup 404 in 16ms
+ GET /.env.dev 404 in 17ms
+ GET /product/.env.staging 404 in 17ms
+ GET /laravel/.env 404 in 21ms
+ GET /docs/.env 404 in 25ms
+ GET /shared/.env 404 in 16ms
+ GET /content/.env 404 in 24ms
+ GET /admin/.env 404 in 16ms
+ GET /storage/.env.local 404 in 18ms
+ GET /.env.local 404 in 16ms
+ GET /docs/.env 404 in 20ms
+ GET /media/.env 404 in 18ms
+ GET /backend/.env 404 in 21ms
+ GET /.env.save 404 in 19ms
+ GET /client/.env 404 in 14ms
+ GET /site/.env 404 in 19ms
+ GET /blog/.env 404 in 16ms
+ GET /.env.backup 404 in 18ms
+ GET /download/.env 404 in 18ms
+ GET /user/.env.staging 404 in 17ms
+ GET /files/.env 404 in 24ms
+ GET /uploads/.env 404 in 16ms
+ GET /.env.production 404 in 21ms
+ GET /env/.env 404 in 18ms
+ GET /icons/.env 404 in 18ms
+ GET /.env.live 404 in 18ms
+ GET /.env.swp 404 in 17ms
+ GET /.env.uat 404 in 17ms
+ GET /info 404 in 22ms
+Sessions Data: []
+ GET / 200 in 32ms
+ GET /favicon.ico 200 in 7ms
+Sessions Data: []
+ GET / 200 in 29ms
+ GET /favicon.ico 200 in 8ms
+ GET /.git/config 404 in 29ms
+ GET /.env 404 in 26ms
+ GET /.env 404 in 28ms
+Sessions Data: []
+ POST / 200 in 34ms
+ GET /.env 404 in 23ms
+ GET /.env 404 in 27ms
+Sessions Data: []
+ GET / 200 in 43ms
+Sessions Data: []
+ GET / 200 in 27ms
+Sessions Data: []
+ GET / 200 in 36ms
+ GET /favicon.ico 200 in 10ms
+ GET /actuator/gateway/routes 404 in 24ms
+ GET /.env 404 in 29ms
+ GET /.env 404 in 21ms
+ GET /Remote 404 in 22ms
+ GET /Remote 404 in 25ms
+Sessions Data: []
+ GET / 200 in 29ms
+Sessions Data: []
+ GET / 200 in 31ms
+ GET /about 404 in 23ms
+Sessions Data: []
+ GET / 200 in 28ms
+ GET /codex/chat/history 404 in 26ms
+ GET /.env 404 in 31ms
+Sessions Data: []
+ GET / 200 in 35ms
+ GET /.git/config 404 in 25ms
+ GET /.git/config 404 in 29ms
+ GET /favicon.ico 200 in 12ms
+Sessions Data: []
+ GET / 200 in 78ms
+ GET /favicon.ico 200 in 11ms
+Sessions Data: []
+ GET / 200 in 34ms
+Sessions Data: []
+ GET / 200 in 24ms
+Sessions Data: []
+ GET / 200 in 29ms
+Sessions Data: []
+ GET / 200 in 36ms
+ GET /robots.txt 404 in 29ms
+ GET /sitemap.xml 404 in 23ms
+ GET /.well-known/security.txt 404 in 22ms
+ GET /favicon.ico 200 in 8ms
+ GET /.git/config 404 in 28ms
+ GET /.git/config 404 in 26ms
+ GET /.env 404 in 28ms
+Sessions Data: []
+ POST / 200 in 41ms
+Sessions Data: []
+ GET / 200 in 38ms
+ GET /.git/config 404 in 34ms
+Sessions Data: []
+ GET / 200 in 29ms
+Sessions Data: []
+ GET / 200 in 27ms
+Sessions Data: []
+ GET / 200 in 31ms
+ GET /favicon.ico 200 in 14ms
+ GET /.env 404 in 27ms
+ GET /.env 404 in 26ms
+Sessions Data: []
+ GET / 200 in 30ms
+ GET /.git/config 404 in 30ms
+Sessions Data: []
+ GET / 200 in 33ms
+ GET /.env 404 in 29ms
+Sessions Data: []
+ POST / 200 in 28ms
+ GET /favicon.ico 200 in 18ms
+Sessions Data: []
+ GET / 200 in 37ms
+Sessions Data: []
+ HEAD / 200 in 22ms
+Sessions Data: []
+ GET / 200 in 30ms
+Sessions Data: []
+ GET / 200 in 44ms
+ GET /favicon.ico 200 in 15ms
+Sessions Data: []
+ GET / 200 in 33ms
+ GET /wp-includes/wlwmanifest.xml 404 in 25ms
+ GET /xmlrpc.php?rsd 404 in 43ms
+Sessions Data: []
+ GET / 200 in 39ms
+ GET /blog/wp-includes/wlwmanifest.xml 404 in 17ms
+ GET /web/wp-includes/wlwmanifest.xml 404 in 25ms
+ GET /wordpress/wp-includes/wlwmanifest.xml 404 in 21ms
+ GET /website/wp-includes/wlwmanifest.xml 404 in 22ms
+ GET /wp/wp-includes/wlwmanifest.xml 404 in 16ms
+ GET /news/wp-includes/wlwmanifest.xml 404 in 15ms
+ GET /2020/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /2019/wp-includes/wlwmanifest.xml 404 in 18ms
+ GET /shop/wp-includes/wlwmanifest.xml 404 in 16ms
+ GET /wp1/wp-includes/wlwmanifest.xml 404 in 15ms
+ GET /test/wp-includes/wlwmanifest.xml 404 in 17ms
+ GET /wp2/wp-includes/wlwmanifest.xml 404 in 17ms
+ GET /site/wp-includes/wlwmanifest.xml 404 in 21ms
+ GET /cms/wp-includes/wlwmanifest.xml 404 in 18ms
+ GET /sito/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /.env 404 in 23ms
+Sessions Data: []
+ POST / 200 in 27ms
+Sessions Data: []
+ GET / 200 in 32ms
+Sessions Data: []
+ GET / 200 in 31ms
+ GET /.git/config 404 in 26ms
+Sessions Data: []
+ GET / 200 in 33ms
+ GET /favicon.ico 200 in 9ms
+ GET /robots.txt 404 in 34ms
+ GET /.env 404 in 24ms
+Sessions Data: []
+ GET / 200 in 30ms
+ GET /favicon.ico 200 in 9ms
+ GET /wp-includes/ID3/license.txt 404 in 28ms
+ GET /xmlrpc.php?rsd 404 in 26ms
+ GET /blog/wp-includes/wlwmanifest.xml 404 in 25ms
+ GET /web/wp-includes/wlwmanifest.xml 404 in 18ms
+ GET /wordpress/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /wp/wp-includes/wlwmanifest.xml 404 in 18ms
+ GET /2020/wp-includes/wlwmanifest.xml 404 in 25ms
+ GET /2019/wp-includes/wlwmanifest.xml 404 in 18ms
+ GET /2021/wp-includes/wlwmanifest.xml 404 in 18ms
+ GET /shop/wp-includes/wlwmanifest.xml 404 in 19ms
+ GET /wp1/wp-includes/wlwmanifest.xml 404 in 18ms
+ GET /test/wp-includes/wlwmanifest.xml 404 in 20ms
+ GET /site/wp-includes/wlwmanifest.xml 404 in 17ms
+ GET /cms/wp-includes/wlwmanifest.xml 404 in 17ms
+Sessions Data: []
+ GET / 200 in 26ms
+Sessions Data: []
+ GET / 200 in 32ms
+Sessions Data: []
+ GET / 200 in 31ms
+ GET /favicon.ico 200 in 11ms
+ GET /.env 404 in 25ms
+Sessions Data: []
+ POST / 200 in 31ms
+ GET /.git/config 404 in 28ms
+ GET /.env 404 in 28ms
+ GET /version 404 in 44ms
+Sessions Data: []
+ GET / 200 in 32ms
+Sessions Data: []
+ GET /?XDEBUG_SESSION_START=phpstorm 200 in 35ms
+Sessions Data: []
+ GET / 200 in 35ms
+ GET /.env 404 in 25ms
+Sessions Data: []
+ POST / 200 in 36ms
+ POST /hello.world?%ADd+allow_url_include%3d1+%ADd+auto_prepend_file%3dphp://input 404 in 25ms
+ GET /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 21ms
+ GET /vendor/phpunit/phpunit/Util/PHP/eval-stdin.php 404 in 23ms
+ GET /vendor/phpunit/src/Util/PHP/eval-stdin.php 404 in 23ms
+ GET /vendor/phpunit/Util/PHP/eval-stdin.php 404 in 28ms
+ GET /vendor/phpunit/phpunit/LICENSE/eval-stdin.php 404 in 22ms
+ GET /vendor/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 17ms
+ GET /phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /phpunit/phpunit/Util/PHP/eval-stdin.php 404 in 17ms
+ GET /phpunit/src/Util/PHP/eval-stdin.php 404 in 29ms
+ GET /phpunit/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /lib/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /lib/phpunit/phpunit/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /lib/phpunit/src/Util/PHP/eval-stdin.php 404 in 18ms
+ GET /lib/phpunit/Util/PHP/eval-stdin.php 404 in 17ms
+ GET /lib/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /laravel/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 15ms
+ GET /www/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 25ms
+ GET /ws/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 15ms
+ GET /yii/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 16ms
+ GET /zend/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php 404 in 20ms
+ GET /actuator/gateway/routes 404 in 23ms
+ GET /.git/index 404 in 30ms
+Sessions Data: []
+ GET / 200 in 28ms
+Sessions Data: []
+ GET / 200 in 26ms
+ GET /favicon.ico 200 in 8ms
+Sessions Data: []
+ GET / 200 in 26ms
+Sessions Data: []
+ GET / 200 in 54ms
+ GET /favicon.ico 200 in 19ms
+Sessions Data: []
+ POST / 200 in 29ms
+ GET /phpinfo 404 in 32ms
+ GET /phpinfo.php 404 in 21ms
+ GET /portal/.env 404 in 21ms
+ GET /env/.env 404 in 18ms
+ GET /app/.env 404 in 19ms
+ GET /dev/.env 404 in 22ms
+ GET /new/.env 404 in 18ms
+ GET /new/.env.local 404 in 17ms
+ GET /new/.env.production 404 in 140ms
+ GET /new/.env.staging 404 in 16ms
+ GET /_phpinfo.php 404 in 17ms
+ GET /_profiler/phpinfo 404 in 20ms
+ GET /_profiler/phpinfo/info.php 404 in 15ms
+ GET /_profiler/phpinfo/phpinfo.php 404 in 23ms
+ GET /wp-config 404 in 17ms
+ GET /aws-secret.yaml 404 in 19ms
+ GET /awstats/.env 404 in 21ms
+ GET /conf/.env 404 in 19ms
+ GET /cron/.env 404 in 17ms
+ GET /www/.env 404 in 16ms
+ GET /docker/.env 404 in 22ms
+ GET /docker/app/.env 404 in 19ms
+ GET /env.backup 404 in 16ms
+ GET /xampp/phpinfo.php 404 in 17ms
+ GET /lara/info.php 404 in 24ms
+ GET /lara/phpinfo.php 404 in 23ms
+ GET /laravel/info.php 404 in 17ms
+ GET /.vscode/.env 404 in 18ms
+ GET /js/.env 404 in 16ms
+ GET /laravel/.env 404 in 25ms
+ GET /laravel/core/.env 404 in 20ms
+ GET /mail/.env 404 in 29ms
+ GET /mailer/.env 404 in 24ms
+ GET /nginx/.env 404 in 19ms
+ GET /public/.env 404 in 14ms
+ GET /site/.env 404 in 33ms
+ GET /xampp/.env 404 in 22ms
+ GET /.docker/laravel/app/.env 404 in 20ms
+ GET /laravel/.env.local 404 in 18ms
+ GET /laravel/.env.production 404 in 17ms
+ GET /laravel/.env.staging 404 in 19ms
+ GET /laravel/core/.env.local 404 in 15ms
+ GET /laravel/core/.env.production 404 in 21ms
+ GET /laravel/core/.env.staging 404 in 20ms
+ GET /main/.env 404 in 16ms
+ GET /node_modules/.env 404 in 18ms
+Sessions Data: []
+ GET / 200 in 30ms
+Sessions Data: []
+ GET / 200 in 44ms
+ GET /chunks/app/page.js 404 in 29ms
+ GET /chunks/app/page.js 404 in 25ms
+ GET /chunks/app-pages-internals.js 404 in 44ms
+ GET /chunks/app/layout.js 404 in 53ms
+ GET /node_modules/next/dist/client/link.js 404 in 119ms
+ GET /node_modules/next/dist/client/components/layout-router.js 404 in 115ms
+ GET /node_modules/next/dist/client/components/render-from-template-context.js 404 in 80ms
+ GET /node_modules/next/dist/client/components/error-boundary.js 404 in 38ms
+ GET /node_modules/next/dist/client/components/client-page.js 404 in 52ms
+ GET /node_modules/next/dist/client/components/app-router.js 404 in 45ms
+Sessions Data: []
+ GET / 200 in 38ms
+ GET /node_modules/next/dist/client/components/client-page.js 404 in 265ms
+ GET /chunks/app/page.js 404 in 301ms
+ GET /node_modules/next/dist/client/components/layout-router.js 404 in 293ms
+ GET /node_modules/next/dist/client/link.js 404 in 300ms
+ GET /chunks/app/layout.js 404 in 300ms
+ GET /node_modules/next/dist/client/components/error-boundary.js 404 in 238ms
+ GET /chunks/app-pages-internals.js 404 in 73ms
+ GET /node_modules/next/dist/client/components/render-from-template-context.js 404 in 21ms
+Sessions Data: []
+ GET / 200 in 32ms
+ GET /wp 404 in 24ms
+ GET /wordpress 404 in 25ms
+ GET /coderag 404 in 25ms
+ GET /wordpress 404 in 32ms
+ GET /old 404 in 23ms
+ GET /backup 404 in 25ms
+ GET /new 404 in 35ms
+ GET /test 404 in 37ms
+ GET /wp 404 in 23ms
+ GET /temp 404 in 33ms
+ GET /blog 404 in 31ms
+ ✓ Compiled in 3.5s (627 modules)
+ GET / 200 in 151ms
+ GET /chunks/app/page-71d2ab637ae99497.js 404 in 92ms
+ GET /chunks/394-585bf08a4a1ed72a.js 404 in 77ms
+ GET /chunks/app/layout-5c54f66c4fc15939.js 404 in 24ms
+
+> together-nextjs-chat@0.1.0 start
+> next start
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 416ms

@@ -1,0 +1,55 @@
+nohup: ignoring input
+
+> together-nextjs-chat@0.1.0 dev
+> next dev -p 80 -p 3000
+
+  ▲ Next.js 14.2.17
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 1892ms
+ ○ Compiling / ...
+
+🌼   daisyUI 4.12.23
+├─ ✔︎ 2 themes added		https://daisyui.com/docs/themes
+╰─ ★ Star daisyUI on GitHub	https://github.com/saadeghi/daisyui
+
+ ✓ Compiled / in 3.5s (624 modules)
+ ✓ Compiled in 577ms (301 modules)
+ GET / 200 in 4085ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1065ms (644 modules)
+ GET /favicon.ico 200 in 1316ms
+ GET /_next/webpack-hmr 404 in 936ms
+ GET / 200 in 66ms
+ GET /_next/webpack-hmr 404 in 28ms
+ GET / 200 in 57ms
+ GET / 200 in 34ms
+ GET /favicon.ico 200 in 28ms
+ GET / 200 in 29ms
+ GET / 200 in 31ms
+ GET /favicon.ico 200 in 11ms
+ GET /_next/webpack-hmr 404 in 25ms
+ GET /openapi.json 404 in 30ms
+ GET / 200 in 37ms
+ GET / 200 in 32ms
+ GET /_next/webpack-hmr 404 in 26ms
+ GET / 200 in 31ms
+ GET /_next/webpack-hmr 404 in 29ms
+ GET / 200 in 36ms
+ GET / 200 in 31ms
+ GET / 200 in 31ms
+ GET /_next/webpack-hmr 404 in 24ms
+ GET / 200 in 30ms
+ GET /_next/webpack-hmr 404 in 26ms
+ GET / 200 in 24ms
+ GET /favicon.ico 200 in 12ms
+ GET /_next/webpack-hmr 404 in 25ms
+ GET /docs 404 in 26ms
+ GET /openapi.json 404 in 31ms
+ GET / 200 in 36ms
+ GET /_next/webpack-hmr 404 in 27ms
+ GET /openapi.json 404 in 26ms
+ GET /openapi.json 404 in 23ms
+ GET /favicon.ico 200 in 9ms
+ GET /openapi.json 404 in 20ms
