@@ -1,11 +1,11 @@
 version: 0.0
 os: linux
 files:
- - source: /
-   destination: /home/ec2-user/codebase-rag
-   overwrite: yes
+  - source: /
+    destination: /home/ec2-user/codebase-rag
+    overwrite: yes
 hooks:
   AfterInstall:
-   - location: deploy.sh
-     timeout: 300
-     runas: root
+    - location: deploy.sh
+      timeout: 300
+      runas: root
