@@ -19,4 +19,11 @@ sudo pm2 restart frontend || sudo pm2 start npm --name "frontend" -- start
 
 # Save PM2 process
 sudo pm2 save
+# Backend
+cd /home/ec2-user/codebase-rag/backend
+# Restart the application
+sudo pm2 restart fastapi-app || sudo pm2 start python --name "fastapi-app" -- main.py
+# Save PM2 process
+sudo pm2 save
+
 echo "Deployment complete!"
