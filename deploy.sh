@@ -1,11 +1,11 @@
 #!/bin/bash
 set -x
 chmod +x /home/ec2-user/codebase-rag/deploy.sh
-echo "Removing old files..."
-rm -rf /home/ec2-user/codebase-rag/*  # Remove all existing files
 echo "Starting deployment..."
 cd /home/ec2-user/codebase-rag
 # Pull latest changes
+git reset --hard HEAD
+git clean -fd 
 git pull origin main
 cd /home/ec2-user/codebase-rag/frontend
 # Install dependencies
