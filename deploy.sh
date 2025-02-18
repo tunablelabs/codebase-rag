@@ -15,8 +15,8 @@ npm install
 npm run build
 
 # Restart the application
-pm2 restart frontend || pm2 start npm --name "frontend" -- start
+sudo pm2 restart frontend || sudo pm2 start npm --name "frontend" -- start
 
 # Save PM2 process
-pm2 save
+sudo pm2 save
 echo "Deployment complete!"
