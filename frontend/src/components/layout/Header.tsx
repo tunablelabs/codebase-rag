@@ -23,7 +23,7 @@ export default function Header() {
               href="/"
             >
               <span className="relative">
-                Ask a Question
+                Ask a Questions
                 <span className="absolute -bottom-0.5 left-0 h-0.5 w-0 bg-primary 
                   transition-all duration-300 group-hover:w-full" />
               </span>
