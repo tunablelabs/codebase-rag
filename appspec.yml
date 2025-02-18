@@ -4,7 +4,12 @@ files:
   - source: /
     destination: /home/ec2-user/codebase-rag
     overwrite: yes
+
 hooks:
+  BeforeInstall:
+    - location: cleanup.sh
+      timeout: 300
+      runas: root
   AfterInstall:
     - location: deploy.sh
       timeout: 300
