@@ -10,3 +10,4 @@ deepeval==2.1.9
 nltk==3.9.1
 python-multipart==0.0.20
 uvicorn==0.34.0
+aioboto3==13.4.0

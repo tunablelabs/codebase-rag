@@ -10,11 +10,9 @@ from datetime import datetime
 import logging
 
 from .providers import BaseLLMProvider, OpenAIProvider, AzureOpenAIProvider, ClaudeProvider
-from .get_local_db import fetch_user_data, check_and_create_table, add_user, update_conversation, user_exists
+from .dynamo_db_crud import DynamoDBManager
 from config.config import OPENAI_API_KEY
 
-# checks & creates user localdb if not already
-check_and_create_table()
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +79,7 @@ class ChatLLM:
                 url=qdrant_url,
                 api_key=qdrant_api_key
             )
+            self.dynamo_db = DynamoDBManager()
         except Exception as e:
             raise Exception(f"Failed to initialize Qdrant client: {str(e)}")
 
@@ -176,7 +175,7 @@ class ChatLLM:
         except Exception as e:
             raise Exception(f"Qdrant query failed: {str(e)}")
 
-    def prepare_messages_with_context(self, ast_flag: str, collection_name: str, user_id: str, sys_prompt:str, query: str, limit: int = 5) -> Tuple[list[BaseMessage], list[str], list[str]]:
+    async def prepare_messages_with_context(self, ast_flag: str, collection_name: str, user_id: str, session_id: str, sys_prompt:str, query: str, limit: int = 5) -> Tuple[list[BaseMessage], list[str], list[str]]:
         """
         Prepare messages with context for the LLM.
         
@@ -190,11 +189,19 @@ class ChatLLM:
         Returns:
             Tuple[list[BaseMessage], list[str], list[str]]: Messages, contexts, and source attributes
         """
+        # Get messages using user and session id's then prepare the user_context
+        messages_result = await self.dynamo_db.get_session_messages(user_id, session_id)
+        # Get last 3 conversation of the user
+        # Based on the context length we could increase the window size present it is 3
+        messages_response = messages_result[-3:]
         
-        if user_exists(user_id):
-            user_context = fetch_user_data(user_id)['context_window']
+        if messages_response:
+            text = []
+            for msg in messages_response:
+                text.append(f"Q: {msg['query']} | A: {msg['response']}")
+            
+            user_context = " ".join(text)          
         else:
-            add_user(user_id)
             user_context = None
         
         contexts, source_attributes = self.get_context_from_qdrant(ast_flag, collection_name, query, limit)
@@ -263,11 +270,12 @@ class ChatLLM:
         
         return messages, contexts, source_attributes
 
-    def invoke(
+    async def invoke(
         self, 
         ast_flag: str,
         collection_name: str,
         user_id: str,
+        session_id: str,
         sys_prompt: str,
         query: str, 
         limit: int = 5, 
@@ -289,8 +297,8 @@ class ChatLLM:
         Returns:
             Tuple[list[str], LLMInterface]: Contexts and LLM response
         """
-        messages, contexts, source_attributes = self.prepare_messages_with_context(
-            ast_flag, collection_name, user_id, sys_prompt, query, limit
+        messages, contexts, source_attributes = await self.prepare_messages_with_context(
+            ast_flag, collection_name, user_id, session_id, sys_prompt, query, limit
         )
         
         try:
@@ -301,7 +309,6 @@ class ChatLLM:
             )
             
             llm_response = response_data["choices"][0]["message"]["content"]
-            update_conversation(user_id, question=query, answer=llm_response, turn=3)
             
             return contexts, LLMInterface(
                 content=f"{llm_response}\nSource files: {', '.join(source_attributes)}",
