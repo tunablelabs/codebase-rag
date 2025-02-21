@@ -29,8 +29,8 @@ async def health_check():
 @router.post("/create/user")
 async def check_create_user(user_id: str):
     try:
-        await dynamo_db_service.create_user(user_id)
-        return {"success": True}
+        response = await dynamo_db_service.create_user(user_id)
+        return response
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

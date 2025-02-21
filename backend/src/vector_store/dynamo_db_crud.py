@@ -5,6 +5,7 @@ from botocore.exceptions import ClientError
 from typing import Dict, Any, Optional
 import uuid
 from datetime import datetime
+from config.config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION
 
 class DynamoDBManager:
     """
@@ -14,20 +15,31 @@ class DynamoDBManager:
 
     def __init__(self):
         """
+        Initialize connection to AWS DynamoDB.
+        Uses AWS credentials from environment variables.
+        """
+        # Create session with credentials
+        self.session = aioboto3.Session(
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            region_name=AWS_DEFAULT_REGION
+        )
+        # Local Setup
+        """
         Initialize connection to local DynamoDB instance.
         Uses local endpoint and dummy credentials for development.
         """
-        self.session = aioboto3.Session()
-        self.dynamodb_config = {
-            'endpoint_url': 'http://localhost:8000',  # Local DynamoDB endpoint
-            'region_name': 'local',                   # Local region for development
-            'aws_access_key_id': 'local',            # Dummy credentials
-            'aws_secret_access_key': 'local'         # Dummy credentials
-        }
+        # self.session = aioboto3.Session()
+        # self.dynamodb_config = {
+        #     'endpoint_url': 'http://localhost:8000',  # Local DynamoDB endpoint
+        #     'region_name': 'local',                   # Local region for development
+        #     'aws_access_key_id': 'local',            # Dummy credentials
+        #     'aws_secret_access_key': 'local'         # Dummy credentials
+        # }
 
     async def get_table(self):
         """Helper method to get table resource"""
-        async with self.session.resource('dynamodb', **self.dynamodb_config) as dynamodb:
+        async with self.session.resource('dynamodb') as dynamodb:
             return await dynamodb.Table('codebase')
 
     async def create_user(self, user_id: str) -> Dict:
