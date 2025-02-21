@@ -28,7 +28,7 @@
     "tailwind-scrollbar": "^3.1.0",
     "together-ai": "^0.7.0",
     "radix-ui/react-avatar",
-    'radix-ui/react-dropdown-menu"
+    "radix-ui/react-dropdown-menu",
   },
   "devDependencies": {
     "@types/node": "^20",
