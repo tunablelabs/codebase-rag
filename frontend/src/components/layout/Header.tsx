@@ -1,9 +1,34 @@
+'use client'
 import NavLink from "@/app/NavLink";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import { ExternalLink } from 'lucide-react';
 import { ThemeToggle } from '@/app/ThemeToggle';
-
-export default function Header() {
+import type { User } from "@supabase/supabase-js";
+import { Scale, LogOut, User2 } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { signOut } from "@/app/(auth)/login/actions";
+import { useRouter } from "next/navigation";
+export default function Header({ user }: { user: User | null }) {
+  const router = useRouter();
+  const signOut = async () => {
+    const res = await fetch("/api/signout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    if (res.ok) {
+      console.log('success signout')
+      localStorage.setItem("logout", "true");
+      router.push("/login?t=" + Date.now());
+      window.location.reload(); // Ensure UI updates immediately
+    }else{
+      console.error("Failed to sign out");
+    }
+  }
   return (
     <header className="sticky top-0 z-50 bg-base-100/95 backdrop-blur-md border-b border-sky-800/50 h-12">
       <div className="w-full px-3">
@@ -46,6 +71,37 @@ export default function Header() {
             </a>
 
             <ThemeToggle />
+
+            <div className="flex items-center space-x-4 flex-1 justify-end">
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user.user_metadata?.picture || ""} alt={user.email || ""} className="object-cover"/>
+                      <AvatarFallback className="text-sm">{user.user_metadata?.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuItem className="flex items-center">
+                    <User2 className="mr-2 h-4 w-4" />
+                    <span className="text-sm">Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex items-center" onSelect={signOut} >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span className="text-sm">Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Link href="/login">
+                <Button variant="outline" className="border-blue-800 text-blue-400 hover:bg-blue-900 text-sm">
+                  Login
+                </Button>
+              </Link>
+            )}
+        </div>
           </nav>
         </div>
       </div>
