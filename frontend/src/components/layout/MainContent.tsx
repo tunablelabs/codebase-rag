@@ -354,7 +354,7 @@ function MainContent({
             {suggestedQuestions.map((question, index) => (
               <button
                 key={index}
-                onClick={() => setMessage(question)}
+                //onClick={() => setMessage(question)}
                 className="px-3 py-1 text-sm bg-sky-500/20 text-sky-700 
                           hover:bg-sky-500/30 rounded-lg transition-all"
               >
