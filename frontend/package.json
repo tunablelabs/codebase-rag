@@ -31,8 +31,6 @@
     "tailwind-scrollbar": "^3.1.0",
     "together-ai": "^0.7.0"
   },
-
-  },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
