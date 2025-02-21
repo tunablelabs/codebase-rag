@@ -5,7 +5,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-
+import { createClient } from "@/utils/supabase/server";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -24,11 +24,13 @@ export const metadata: Metadata = {
   keywords: "code analysis, AI assistant, development tools",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient()
+  const { data, error } = await supabase.auth.getUser()
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body
@@ -43,7 +45,7 @@ export default function RootLayout({
         `}
       >
         <SessionProvider>
-          <Header />
+          <Header user={data?.user || null} />
           <main className="flex-grow flex-col px-4 py-6">
             {children}
           </main>

@@ -67,6 +67,13 @@ function MainContent({
   const [isMetricsExpanded, setIsMetricsExpanded] = useState<{[key: string]: boolean}>({});
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  const suggestedQuestions = [
+    "How does this function work?",
+    "Can you summarize this file?",
+    "What are the key dependencies?",
+    "Are there any security risks?",
+  ];
+
   useEffect(() => {
     if (currentSession?.messages) {
       const newExpanded = {...isMetricsExpanded};
@@ -343,6 +350,18 @@ function MainContent({
                   </div>
                 )}
               </div>
+              <div className="mb-2 flex flex-wrap gap-2">
+            {suggestedQuestions.map((question, index) => (
+              <button
+                key={index}
+                onClick={() => setMessage(question)}
+                className="px-3 py-1 text-sm bg-sky-500/20 text-sky-700 
+                          hover:bg-sky-500/30 rounded-lg transition-all"
+              >
+                {question}
+              </button>
+            ))}
+          </div>
             </div>
 
             {showScrollButton && (
@@ -366,6 +385,7 @@ function MainContent({
           </div>
 
           <div className="relative">
+         
             <form onSubmit={onSubmit} className="relative">
               <div className={`
                 absolute bottom-full left-0 right-0 mb-2
