@@ -18,18 +18,18 @@ from typing import Optional
 import logging
 from enum import Enum
 from vector_store.providers import OpenAIProvider, AzureOpenAIProvider, ClaudeProvider
+from vector_store.dynamo_db_crud import DynamoDBManager
 
 
 class LLMProvider(str, Enum):
     OPENAI = "openai"
     AZURE = "azure"
     CLAUDE = "claude"
-
-class FileID(BaseModel):
-    file_id: str
       
-class QueryRequest(FileID):
+class QueryRequest(BaseModel):
     """Request model for querying the code"""
+    user_id: str
+    session_id: str
     use_llm: str
     ast_flag: str
     query: str
@@ -46,14 +46,22 @@ class GitCloneService:
         self.base_path = os.path.join(project_root, "project_repos")
         os.makedirs(self.base_path, exist_ok=True)
     
-    def clone(self, repo_url: str) -> str:
+    def clone(self, user_id, repo_url: str) -> str:
         try:
+            user_name = user_id.replace('@', '_').replace('.', '_')    
+            # Check if user exist in project folder
+            user_folder_path = os.path.join(self.base_path, user_name)
+            # Create the user folder if dont exist
+            os.makedirs(user_folder_path, exist_ok=True)
+            # prefix the project with number of the project for the user
+            # For evry session we create single project uploaded during the create session
+            session_number = len(os.listdir(user_folder_path))
+           
             # Extract repo name from URL
             repo_name = repo_url.split('/')[-1].replace('.git', '')
-            repo_path = os.path.join(self.base_path, repo_name)
-            if os.path.exists(repo_path):
-                return repo_name
-                
+            repo_name = f"{session_number+1}_{repo_name}"
+            repo_path = os.path.join(user_folder_path, repo_name)
+            
             # Clone repository
             Repo.clone_from(repo_url, repo_path)
             return repo_name
@@ -61,11 +69,21 @@ class GitCloneService:
         except Exception as e:
             raise Exception(f"Failed to clone repository: {str(e)}")
         
-    def folder_upload(self, input_files) -> str:
-        try:                
+    def folder_upload(self, user_id, input_files) -> str:
+        try:    
+            user_name = user_id.replace('@', '_').replace('.', '_')            
+            # Check if user exist in project folder
+            user_folder_path = os.path.join(self.base_path, user_name)
+            # Create the user folder if dont exist
+            os.makedirs(user_folder_path, exist_ok=True)
+            # prefix the project with number of the project for the user
+            # For evry session we create single project uploaded during the create session
+            session_number = len(os.listdir(user_folder_path))
+            
             # Get the folder name from the first file's path
             folder_name = input_files[0].filename.split('/')[0]
-            folder_path = os.path.join(self.base_path, folder_name)
+            folder_name = f"{session_number+1}_{folder_name}"
+            folder_path = os.path.join(user_folder_path, folder_name)
             
             # Create the directory
             os.makedirs(folder_path, exist_ok=True)
@@ -87,7 +105,25 @@ class GitCloneService:
         except Exception as e:
             return {"error": str(e)}
         
+    def folder_delete(self, user_id, session_id):
+        try:    
+            user_name = user_id.replace('@', '_').replace('.', '_')  
+            session_folder_path = os.path.join(self.base_path, user_name, session_id)
+            shutil.rmtree(Path(session_folder_path))
         
+        except:
+            # Change permissions on all files and folders
+            for root, dirs, files in os.walk(session_folder_path):
+                for dir_name in dirs:
+                    os.chmod(os.path.join(root, dir_name), 0o777)
+                for file_name in files:
+                    os.chmod(os.path.join(root, file_name), 0o777)
+                    
+            # Change permission of the root folder
+            os.chmod(session_folder_path, 0o777)
+            # Remove the folder
+            shutil.rmtree(Path(session_folder_path))
+            
         
 class RepositoryStorageService:
     def __init__(self):
@@ -149,14 +185,6 @@ class RepositoryStorageService:
         except Exception as e:
             raise Exception(f"Repository processing failed: {str(e)}")
 
-class GetChatHistoryLocation:
-    def __init__(self):
-        # Get project root directory (2 levels up from current file)
-        self.current_file = Path(__file__).resolve()
-        self.project_root = self.current_file.parent.parent.parent
-        self.base_path = os.path.join(self.project_root, "chat_history")
-        os.makedirs(self.base_path, exist_ok=True)
-
 
 def get_llm(provider_type: Optional[str] = None) -> ChatLLM:
     """
@@ -209,70 +237,47 @@ def get_llm(provider_type: Optional[str] = None) -> ChatLLM:
         logger.error(f"Failed to create LLM instance: {str(e)}")
         raise
     
-def get_project_path(file_name: str):
+def get_project_path(user_id: str, session_id: str):
     
     try:
-        with open(file_name, "r") as f:
-            data = json.load(f)
-        project_name = data['repo_name']
+        user_id = user_id.replace('@', '_').replace('.', '_')   
         project_folder_path = git_clone_service.base_path
-        project_path = os.path.join(project_folder_path, project_name)
+        project_path = os.path.join(project_folder_path, user_id, session_id)
              
-        return project_path, project_name
+        return project_path
     
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Project File Not found")
     
-        
     
-
-async def update_project_name(file_id: str, project_name: str):
-    chat_history_path = get_chat_history_class.base_path
-    file_path = os.path.join(chat_history_path, f"{file_id}.json")
-    try:
-        with open(file_path, "r") as f:
-            data = json.load(f)
-        
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        data['repo_name'] = project_name
-        data['last_updated'] = timestamp
-
-        with open(file_path, "w") as f:
-            json.dump(data, f, indent=4)
-        return True
-            
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Chat not found")
-    
-async def update_chat_data(file_id: str, user_msg: str, system_msg: str):
-    chat_history_path = get_chat_history_class.base_path
-    file_path = os.path.join(chat_history_path, f"{file_id}.json")
+# async def update_chat_data(file_id: str, user_msg: str, system_msg: str):
+#     chat_history_path = get_chat_history_class.base_path
+#     file_path = os.path.join(chat_history_path, f"{file_id}.json")
   
-    try:
-        with open(file_path, "r") as f:
-            data = json.load(f)
+#     try:
+#         with open(file_path, "r") as f:
+#             data = json.load(f)
 
-        if not data['repo_name']:
-            return {"success": False, "message": "Project not available"}
+#         if not data['repo_name']:
+#             return {"success": False, "message": "Project not available"}
             
-        data['chat'].append({
-            "user": user_msg,
-            "bot": system_msg
-        })
+#         data['chat'].append({
+#             "user": user_msg,
+#             "bot": system_msg
+#         })
         
-        data['last_updated'] = datetime.now().strftime("%Y%m%d_%H%M%S")
+#         data['last_updated'] = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        with open(file_path, "w") as f:
-            json.dump(data, f, indent=2)
+#         with open(file_path, "w") as f:
+#             json.dump(data, f, indent=2)
             
-        return {"success": True}    
+#         return {"success": True}    
     
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Chat not found")
+#     except FileNotFoundError:
+#         raise HTTPException(status_code=404, detail="Chat not found")
 
 
 # Initialize service
-get_chat_history_class = GetChatHistoryLocation()
 repo_service = RepositoryStorageService()
 git_clone_service = GitCloneService()
 evaluator = Evaluator(
@@ -289,3 +294,5 @@ evaluator = Evaluator(
         NonLLMMetricType.SOURCE_DIVERSITY,
     ]
 )
+
+dynamo_db_service = DynamoDBManager()
