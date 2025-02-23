@@ -6,6 +6,11 @@ files:
     overwrite: yes
 
 hooks:
+  BeforeInstall:
+    - location: cleanup.sh
+      timeout: 300
+      runas: root
+      
   AfterInstall:
     - location: deploy.sh
       timeout: 300
