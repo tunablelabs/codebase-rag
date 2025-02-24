@@ -13,11 +13,11 @@ type OAuthProvider = {
 
 export function OAuthButtons() {
   const oAuthProviders: OAuthProvider[] = [
-    {
+   /* {
       name: "github",
       displayName: "GitHub",
       icon: <Github className="size-5" />,
-    },
+    },*/
     {
       name: "google",
       displayName: "Google",

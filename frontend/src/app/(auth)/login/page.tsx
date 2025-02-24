@@ -57,10 +57,10 @@ export default function AuthPage() {
     <div className="min-h-screen bg-gradient-to-b  flex flex-col justify-center items-center px-4">
       <div className="mb-8 flex items-center space-x-2">
         <Scale className="h-8 w-8 text-blue-500" />
-        <span className="text-2xl font-bold">Code Base RAG</span>
+        <span className="text-2xl font-bold">CodeX Assistant</span>
       </div>
       <Card className="w-full max-w-md p-8 border-gray-700">
-        <Tabs defaultValue="login" className="w-full">
+        { /*<Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -118,19 +118,15 @@ export default function AuthPage() {
               </Button>
             </form>
           </TabsContent>
-        </Tabs>
+        </Tabs> */}
         <div className="mt-6">
           <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-600" />
-            </div>
+           
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gray-800 px-2 text-gray-400">Or continue with</span>
+            <OAuthButtons />
             </div>
           </div>
-          <div className="mt-6 grid grid-cols-2 gap-4">
-            <OAuthButtons />
-          </div>
+         
         </div>
       </Card>
       <p className="mt-8 text-center text-sm text-gray-400">
