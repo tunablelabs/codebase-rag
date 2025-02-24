@@ -36,7 +36,7 @@ export default function Header({ user }: { user: User | null }) {
           <div className="flex items-center">
             <h1 className="text-2xl font-semibold tracking-tight flex items-center">
               <span className="bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">Code</span>
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent ml-1">RAG</span>
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent ml-1">X</span>
               <span className="text-base-content/80 ml-1">Assistant</span>
             </h1>
           </div>
