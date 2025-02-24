@@ -36,6 +36,17 @@ class QueryRequest(BaseModel):
     sys_prompt: Optional[str] = ""
     limit: int = 5
     
+class UserID(BaseModel):
+    user_id: str
+    
+class SessionID(BaseModel):
+    session_id: str
+    
+class Rename(UserID, SessionID):
+    updated_name: str
+    
+class UserSessionID(UserID, SessionID):
+    pass
 
 
 class GitCloneService:
