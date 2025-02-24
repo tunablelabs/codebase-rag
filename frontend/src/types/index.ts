@@ -5,20 +5,21 @@ export interface BaseApiResponse {
 
 // session and chat related types
 export interface Message {  
-  user?: string;
-  bot?: string;
+  query?: string;
+  response?: string;
   type: 'user' | 'bot';
   text: string;
   timestamp: string;
+  metrics?: QueryMetrics 
 }
 
 export interface Session {
-  id: string;
-  name: string;
+  session_id: string;
+  project_name: string;
   messages: Message[];
-  createdAt: string;
-  lastActive: string;
-  githubUrl?: string;
+  createdAt?: string;
+  lastActive?: string;
+  githubUrl?: string; 
 }
 
 // chat configuration options
@@ -44,8 +45,19 @@ export interface ListChatSession extends BaseApiResponse {
   messages: Message[];
 }
 
-export interface UploadResponse extends BaseApiResponse {
+export interface NListChatSession extends BaseApiResponse {
+  session_id: string;
+  project_name: string;
+  messages: Message[];
+}
+
+export interface StoreResponse extends BaseApiResponse {
   message?: string;
+}
+
+export interface UploadResponse extends BaseApiResponse {
+  "success": boolean;
+  "session_id": string;
 }
 
 export interface UploadStats extends BaseApiResponse {
@@ -59,7 +71,7 @@ export interface UploadStats extends BaseApiResponse {
 
 // repository and file handling types
 export interface RepositoryUploadRequest {
-  file_id: string;
+  user_id: string;
   local_dir: string;
   repo?: string;
   files?: File[];
@@ -81,7 +93,8 @@ export interface FileUploadOptions {
 
 // query related types
 export interface QueryRequest {
-  file_id: string;
+  session_id: string,
+  user_id: string;
   use_llm: string;
   ast_flag: string;
   query: string;

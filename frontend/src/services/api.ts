@@ -5,11 +5,14 @@ import {
   QueryRequest,
   QueryResponse,
   UploadStats,
-  ListChatSession
+  ListChatSession,
+  StoreResponse,
+  Message,
+  NListChatSession
 } from '@/types';
 
 // const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
-const BASE_URL = '/api'
+const BASE_URL = 'http://35.89.179.202:8000/api'
 class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -29,32 +32,58 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export const api = {
-  async createSession(): Promise<CreateSessionResponse> {
-    console.log('create/chat')
-    const response = await fetch(`${BASE_URL}/codex/create/chat`, {
-      method: 'GET',
+  async createSession(email: string): Promise<CreateSessionResponse> {
+    console.log('create/chat',email)
+    const response = await fetch(`${BASE_URL}/codex/create/user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: email
+      }),
     });
-    console.log(response)
+    console.log('response',response)
     return handleResponse<CreateSessionResponse>(response);
   },
 
  // Add logging to the listAllSessions method
-  async listAllSessions(): Promise<ListChatSession[]> {
+  async listAllSessions(fileId: string): Promise<NListChatSession[]> {
     console.log("[API] Fetching sessions...");
-    const response = await fetch(`${BASE_URL}/codex/chat/history`, {
+    const response = await fetch(`${BASE_URL}/codex/session/list?user_id=${encodeURIComponent(fileId)}`, {
       method: 'GET',
       headers: {
         'Cache-Control': 'no-cache'
-      }
+      },
     });
-    const data = await handleResponse<ListChatSession[]>(response);
+    const data = await handleResponse<NListChatSession[]>(response);
     console.log("[API] Received sessions:", data);
-    return data;
+    const sessionsWithMessages = await Promise.all(
+      data.map(async (session): Promise<NListChatSession> => {
+        const messagesResponse = await fetch(`${BASE_URL}/codex/session/data?user_id=${encodeURIComponent(fileId)}&session_id=${encodeURIComponent(session.session_id)}`, {
+          method: 'GET',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+  
+        const messages = await handleResponse<Message[]>(messagesResponse);
+        console.log(messages);
+        return {
+          ...session,
+          messages // Attach messages to the session
+        };
+      })
+    );
+    console.log("[API] Sessions with messages:", sessionsWithMessages);
+    return sessionsWithMessages;
+  
+    //return data;
   },
 
   async uploadRepository(request: RepositoryUploadRequest): Promise<UploadResponse> {
     const formData = new FormData();
-    formData.append("file_id", request.file_id);
+    formData.append("user_id", request.user_id);
     formData.append("local_dir", request.local_dir);
     if(request.repo){
       formData.append("repo", request.repo);
@@ -66,7 +95,7 @@ export const api = {
     }
     
 
-    const response = await fetch(`${BASE_URL}/codex/uploadproject`, {
+    const response = await fetch(`${BASE_URL}/codex/create/session/uploadproject`, {
       method: 'POST',
       body: formData,
     });
@@ -74,32 +103,34 @@ export const api = {
     return handleResponse<UploadResponse>(response);
   },
 
-  async storeRepository(fileId: string): Promise<UploadResponse> {
-    console.log(fileId)
+  async storeRepository(sessionId: string, userId:string ): Promise<StoreResponse> {
     const response = await fetch(`${BASE_URL}/codex/storage`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        file_id: fileId
+        session_id: sessionId,
+        user_id: userId
       }),
     });
-    //console.log('response from storeage',response)
-    return handleResponse<UploadResponse>(response);
+    console.log('response from storeage',response)
+    return handleResponse<StoreResponse>(response);
   },
 
-  async getStats(fileId: string): Promise<UploadStats> {
-    console.log(fileId)
+  async getStats(sessionId: string, userId: string): Promise<UploadStats> {
+    console.log(sessionId, userId)
     const response = await fetch(`${BASE_URL}/codex/stats`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        file_id: fileId
+        user_id: userId,
+        session_id: sessionId
       }),
     });
+    console.log('response',response);
     return handleResponse<UploadStats>(response);
   },
 
@@ -110,10 +141,11 @@ export const api = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        file_id: request.file_id,
+        user_id: String(request.user_id),
+        session_id: String(request.session_id),
         use_llm: String(request.use_llm),
         ast_flag: String(request.ast_flag),
-	sys_prompt: String(request.sys_prompt),
+	      sys_prompt: String(request.sys_prompt),
         query: request.query,
         limit: request.limit
       }),

@@ -9,6 +9,7 @@ export default async function MainPage(){
     if (!data?.user) {
         redirect('/login')
     }
+    console.log('oauth',data.user.email)
     return <Chatpage/>
 
 }
