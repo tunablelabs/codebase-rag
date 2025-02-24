@@ -4,7 +4,7 @@ import api from '@/services/api';
 interface GithubUploadHookReturn {
   isUploading: boolean;
   stats: Stats | null;
-  uploadUrl: (githubUrl: string) => Promise<Stats | undefined>;
+  uploadUrl: (githubUrl: string, email: string) => Promise<Stats | undefined>;
   sessionId: string | null;
 }
 
@@ -28,7 +28,7 @@ export function useGithubUrl(): GithubUploadHookReturn {
     return regex.test(url);
   };
 
-  const uploadUrl = useCallback(async (githubUrl: string): Promise<Stats | undefined> => {
+  const uploadUrl = useCallback(async (githubUrl: string, email: string): Promise<Stats | undefined> => {
     console.log('Received GitHub URL:', githubUrl);
     setIsUploading(true);
     setUploadError(null);
@@ -39,19 +39,19 @@ export function useGithubUrl(): GithubUploadHookReturn {
         return;
       }
 
-      const sessionResponse = await api.createSession();
+      const sessionResponse = await api.createSession(email);
       console.log('Session Created:', sessionResponse);
-      setSessionId(String(sessionResponse.file_id)); 
-      await api.uploadRepository({
-        file_id: sessionResponse.file_id,
+      
+      const uploadResponse = await api.uploadRepository({
+        user_id: email,
         local_dir: 'False',
         repo: githubUrl, 
       });
-
+      setSessionId(String(uploadResponse.session_id)); 
       console.log('storage processing')
 
-      await api.storeRepository(sessionResponse.file_id);
-      const stats = await api.getStats(sessionResponse.file_id);
+      await api.storeRepository(uploadResponse.session_id, email);
+      const stats = await api.getStats(uploadResponse.session_id, email);
       console.log('stats',stats)
       //setStats(stats); 
       return stats;

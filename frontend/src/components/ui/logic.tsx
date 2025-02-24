@@ -30,7 +30,7 @@ export default function ChatPage() {
   const [isPending, setIsPending] = useState(false);
   const [isFilesVisible, setIsFilesVisible] = useState(false);
   const [isStatsVisible, setIsStatsVisible] = useState(false);
-  const { sessions, currentSessionId, createSession, setSessions, currentSession, addMessageToSession } = useSessionContext();
+  const { sessions, currentSessionId, email, createSession, setSessions, currentSession, addMessageToSession } = useSessionContext();
   
   const handlestatsUpload = useCallback((stats: Stats) => {
     console.log('handle stats upload invoked', stats)
@@ -63,7 +63,9 @@ export default function ChatPage() {
     const updateStatsForSession = async () => {
       if (currentSessionId) {
         try {
-          const updatedStats = await api.getStats(currentSessionId);
+          console.log(currentSessionId,'calling stats')
+          const updatedStats = await api.getStats(currentSessionId, email);
+          console.log(updatedStats)
           handlestatsUpload(updatedStats.stats);
           setIsStatsVisible(true);
         } catch (error) {
@@ -106,7 +108,8 @@ export default function ChatPage() {
 
     try {
       const queryRequest: QueryRequest = {
-        file_id: currentSessionId,
+        user_id: email,
+        session_id: currentSessionId,
         use_llm: llmEvaluatorValue, 
         ast_flag: astFlagValue,
         query: content,
@@ -145,7 +148,7 @@ export default function ChatPage() {
         files={files}
         isPending={isPending}
         chatOptions={chatOptions}
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmit} 
         onPromptChange={(prompt) => setChatOptions(prev => ({ ...prev, systemPrompt: prompt }))}
         onResetPrompt={() => setChatOptions(prev => ({
           ...prev,

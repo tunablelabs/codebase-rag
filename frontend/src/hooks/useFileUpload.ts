@@ -6,7 +6,7 @@ interface FileUploadHookReturn {
   files: UploadedFile[];
   isUploading: boolean;
   uploadError: string | null;
-  uploadFiles: (fileList: FileList) => Promise<Stats | undefined>;
+  uploadFiles: (fileList: FileList, email: string) => Promise<Stats | undefined>;
   clearFiles: () => void;
   sessionIdf: string | null;
 }
@@ -41,30 +41,29 @@ export function useFileUpload(options: FileUploadOptions = {}): FileUploadHookRe
     return true;
   }, [options.maxSize, options.allowedTypes]);
 
-  const uploadFiles = useCallback(async (fileList: FileList): Promise<Stats | undefined> => {
+  const uploadFiles = useCallback(async (fileList: FileList, email: string): Promise<Stats | undefined> => {
     console.log('recieve')
     setIsUploading(true);
     setUploadError(null);
 
     try {
-      const sessionResponse = await api.createSession();
-      console.log(sessionResponse)
-      setsessionIdf(sessionResponse.file_id); 
+      const sessionResponse = await api.createSession(email);
       const fileArray = Array.from(fileList);
       
       if (!fileArray.every(validateFile)) {
         return;
       }
       console.log(fileArray)
-      await api.uploadRepository({
-        file_id: sessionResponse.file_id,
+      const uploadResponse = await api.uploadRepository({
+        user_id: email,
         local_dir: 'True',
         files: fileArray
       });
-      console.log('storing_repo',sessionResponse.file_id)
-      await api.storeRepository(sessionResponse.file_id);
+      setsessionIdf(String(uploadResponse.session_id)); 
+      console.log('storing_repo',uploadResponse.session_id)
+      await api.storeRepository(uploadResponse.session_id, email);
 
-      const stats = await api.getStats(sessionResponse.file_id);
+      const stats = await api.getStats(uploadResponse.session_id, email);
       console.log('stats',stats)
       setStats(stats); 
 

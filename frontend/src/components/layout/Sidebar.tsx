@@ -30,7 +30,7 @@ export default function Sidebar({
   onFileUpload,
   handlestatsUpload
 }: SidebarProps) {
-  const { sessions, currentSessionId, createSession, setCurrentSessionId } = useSessionContext();
+  const { sessions, email, currentSessionId, createSession, setCurrentSessionId } = useSessionContext();
   const { uploadFiles, sessionIdf } = useFileUpload()
   const { uploadUrl, sessionId } = useGithubUrl()
   const [isInputVisible, setInputVisible] = useState(false);
@@ -81,13 +81,13 @@ export default function Sidebar({
         if (githubUrl) {
           const newses = extractRepoName(githubUrl)
           setNewSessionName(newses)
-          const rawResponse = await uploadUrl(githubUrl);
+          const rawResponse = await uploadUrl(githubUrl,email);
           const response = rawResponse as unknown as APIResponse;
           if (response?.stats) {
             handlestatsUpload(response.stats);
           }
         } else if (selectedFiles) {
-          const rawResponse = await uploadFiles(selectedFiles);
+          const rawResponse = await uploadFiles(selectedFiles,email);
           const response = rawResponse as unknown as APIResponse;
           console.log('session_fromfiles', response?.stats);
           if (response?.stats) {
@@ -213,10 +213,10 @@ export default function Sidebar({
         {sessions && sessions.length > 0 ? (
           sessions.map((session) => (
             <button
-              key={session.id}
-              onClick={() => setCurrentSessionId(session.id)}
+              key={session.session_id}
+              onClick={() => setCurrentSessionId(session.session_id)}
               className={`w-full px-4 py-1 rounded-lg transition-all text-left group
-                ${currentSessionId === session.id
+                ${currentSessionId === session.session_id
                   ? 'bg-primary/10 text-primary hover:bg-primary/20'
                   : 'hover:bg-base-200 text-base-content/80 hover:text-base-content'
                 }
@@ -224,9 +224,9 @@ export default function Sidebar({
             >
               <div className="flex items-center gap-2">
                 <span className="flex-1 truncate">
-                  {session.name || 'New Chat'}
+                  {session.project_name || 'New Chat'}
                 </span>
-                {currentSessionId === session.id && (
+                {currentSessionId === session.session_id && (
                   <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                 )}
               </div>

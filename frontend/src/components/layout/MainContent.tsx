@@ -351,7 +351,7 @@ function MainContent({
                 )}
               </div>
               <div className="mb-2 flex flex-wrap gap-2">
-            {suggestedQuestions.map((question, index) => (
+            {/*{suggestedQuestions.map((question, index) => (
               <button
                 key={index}
                 //onClick={() => setMessage(question)}
@@ -360,7 +360,7 @@ function MainContent({
               >
                 {question}
               </button>
-            ))}
+            ))}*/}
           </div>
             </div>
 
