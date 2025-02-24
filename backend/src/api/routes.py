@@ -27,9 +27,9 @@ async def health_check():
     
 
 @router.post("/create/user")
-async def check_create_user(user_id: str):
+async def check_create_user(user_id: UserID):
     try:
-        response = await dynamo_db_service.create_user(user_id)
+        response = await dynamo_db_service.create_user(user_id.user_id)
         return response
     
     except Exception as e:
@@ -60,9 +60,9 @@ async def upload_folder(
     
     
 @router.post("/storage")
-async def extract_repository(user_id: str, session_id: str):
+async def extract_repository(user_session: UserSessionID):
     try:
-        project_path = get_project_path(user_id, session_id)
+        project_path = get_project_path(user_session.user_id, user_session.session_id)
         if not os.path.exists(project_path):
             raise HTTPException(status_code=400, detail="project Not Avilable")
         # Need to work on Vector DB logic for user specific
@@ -83,21 +83,21 @@ async def get_session_list(user_id: str) -> List[Dict]:
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/session/rename")
-async def session_rename(user_id: str, session_id: str, updated_name):
+async def session_rename(rename_request: Rename):
     """List all the Sessions for user"""
     try:
-        await dynamo_db_service.rename_session(user_id, session_id, updated_name)
+        await dynamo_db_service.rename_session(rename_request.user_id, rename_request.session_id, rename_request.updated_name)
         return {"success": True}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.post("/session/delete")
-async def session_delete(user_id: str, session_id: str):
+async def session_delete(user_session: UserSessionID):
     """Delete all the messages and Session from DB and Local Project for that session"""
     try:
-        git_clone_service.folder_delete(user_id, session_id)
-        await dynamo_db_service.delete_session(user_id, session_id)
+        git_clone_service.folder_delete(user_session.user_id, user_session.session_id)
+        await dynamo_db_service.delete_session(user_session.user_id, user_session.session_id)
         
         return {"success": True}
         
@@ -116,9 +116,9 @@ async def get_session_data(user_id: str, session_id: str):
         
 
 @router.post("/stats")
-async def analyze_repository(user_id: str, session_id: str):
+async def analyze_repository(user_session: UserSessionID):
     try:
-        project_path = get_project_path(user_id, session_id)
+        project_path = get_project_path(user_session.user_id, user_session.session_id)
         if not os.path.exists(project_path):
             raise HTTPException(status_code=400, detail="project Not Avilable")
         print(project_path)
