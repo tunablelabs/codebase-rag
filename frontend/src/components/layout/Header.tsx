@@ -26,7 +26,6 @@ export default function Header({ user }: { user: User | null }) {
       router.push("/login?t=" + Date.now());
       window.location.reload(); // Ensure UI updates immediately
     }else{
-      console.log(res.status);
       console.error("Failed to sign out");
     }
   }
