@@ -9,12 +9,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { signOut } from "@/app/(auth)/login/actions";
+//import { signOut } from "@/app/(auth)/login/actions";
 import { useRouter } from "next/navigation";
 export default function Header({ user }: { user: User | null }) {
   const router = useRouter();
   const signOut = async () => {
-    const res = await fetch("/api/signout", {
+    const res = await fetch("/signout", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -26,6 +26,7 @@ export default function Header({ user }: { user: User | null }) {
       router.push("/login?t=" + Date.now());
       window.location.reload(); // Ensure UI updates immediately
     }else{
+      console.log(res.status);
       console.error("Failed to sign out");
     }
   }
