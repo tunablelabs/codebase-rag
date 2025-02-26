@@ -18,7 +18,7 @@ import {
   File,
   ArrowDown
 } from 'lucide-react';
-
+import ReactMarkdown from "react-markdown"
 interface Stats {
   total_code_files: number;
   language_distribution: {
@@ -245,12 +245,13 @@ function MainContent({
           lineHeight: '1.5',
           whiteSpace: 'pre-wrap'
         }}>
-          {block.content}
+          <ReactMarkdown>{block.content}</ReactMarkdown>
         </pre>
       );
     });
   };
   const renderMessageBubble = (msg: any, index: number) => {
+    console.log(msg)
     const isUser = msg.type === "user";
     const sourceFilesMatch = msg.text.match(/Source files:(.*?)(?=\n|$)/i);
     const messageText = sourceFilesMatch 
