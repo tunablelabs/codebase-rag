@@ -94,6 +94,7 @@ export default function ChatPage() {
     console.log(content,currentSessionId,astFlagValue,llmEvaluatorValue);
     if (!currentSessionId) {
       alert("Please create a new session first.");
+      setIsPending(false);
       return;
     }
 
