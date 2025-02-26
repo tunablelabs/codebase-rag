@@ -12,18 +12,22 @@ class DynamoDBManager:
     Manages DynamoDB operations for a chat application using aioboto3.
     Handles users, sessions, and messages in a single table design.
     """
+    
+    _resource = None  # Shared resource across all method calls
+    _table = None     # Cached table reference
 
     def __init__(self):
         """
         Initialize connection to AWS DynamoDB.
         Uses AWS credentials from environment variables.
-        """
+        """      
         # Create session with credentials
         self.session = aioboto3.Session(
             aws_access_key_id=AWS_ACCESS_KEY_ID,
             aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
             region_name=AWS_DEFAULT_REGION
         )
+       
         # Local Setup
         """
         Initialize connection to local DynamoDB instance.
@@ -37,10 +41,14 @@ class DynamoDBManager:
         #     'aws_secret_access_key': 'local'         # Dummy credentials
         # }
 
+
     async def get_table(self):
-        """Helper method to get table resource"""
-        async with self.session.resource('dynamodb') as dynamodb:
-            return await dynamodb.Table('codebase')
+        """Helper method to get table resource, creating it only once"""
+        if DynamoDBManager._resource is None:
+            # Create the resource only once
+            DynamoDBManager._resource = await self.session.resource('dynamodb').__aenter__()
+            DynamoDBManager._table = await DynamoDBManager._resource.Table('codebase')
+        return DynamoDBManager._table
 
     async def create_user(self, user_id: str) -> Dict:
         """Create a new user in the database if they don't already exist."""

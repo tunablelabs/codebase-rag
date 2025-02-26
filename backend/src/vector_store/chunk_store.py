@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from qdrant_client import QdrantClient
 from config.config import QDRANT_HOST, QDRANT_API_KEY, OPENAI_API_KEY
 import logging
@@ -17,11 +17,13 @@ logger = logging.getLogger(__name__)
 class ChunkStoreHandler:
     """Handles storage of chunks in the vector database."""
     
-    def __init__(self, repo_path):
+    def __init__(self, repo_path, user_id: Optional[str] = None, session_id: Optional[str] = None):
         self.client = QdrantClient(
             url=QDRANT_HOST,
             api_key=QDRANT_API_KEY
         )
+        self.user_id = user_id.replace('@', '_').replace('.', '_') 
+        self.session_id = session_id
         self.openai_client = OpenAI(api_key=OPENAI_API_KEY)
         self.repo_path = repo_path
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
@@ -42,7 +44,8 @@ class ChunkStoreHandler:
         name_components = components[-1:]
         base_name = '-'.join(name_components)
         clean_name = re.sub(r'[^a-z0-9-]+', '_', base_name.lower()).strip('_')
-        
+        # Build the collection name userid-sessionid-projectname
+        clean_name = "-".join([self.user_id, self.session_id, clean_name])
         return clean_name
         
     def _ensure_collection_exists(self):
@@ -279,3 +282,11 @@ class ChunkStoreHandler:
         except Exception as e:
             logger.error(f"Error getting collection info: {str(e)}")
             return None
+        
+    def delete_collection(self, collection_name):
+        """Delete the current collection from Qdrant DB"""
+        try:
+            return self.client.delete_collection(collection_name)
+        except Exception as e:
+            logger.error(f"Error deleting collection: {str(e)}")
+            return False

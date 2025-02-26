@@ -73,7 +73,7 @@ async def extract_repository(user_session: UserSessionID):
         if not os.path.exists(project_path):
             raise HTTPException(status_code=400, detail="project Not Avilable")
         # Need to work on Vector DB logic for user specific
-        result = repo_service.process_repository(project_path)
+        result = repo_service.process_repository(project_path, user_session.user_id, user_session.session_id)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -103,9 +103,19 @@ async def session_rename(rename_request: Rename):
 async def session_delete(user_session: UserSessionID):
     """Delete all the messages and Session from DB and Local Project for that session"""
     try:
-        git_clone_service.folder_delete(user_session.user_id, user_session.session_id)
-        await dynamo_db_service.delete_session(user_session.user_id, user_session.session_id)
+        project_path = get_project_path(user_session.user_id, user_session.session_id) 
+
+        if not os.path.exists(project_path):
+            raise HTTPException(status_code=400, detail="project Not Avilable")
         
+        # Delete Repo
+        git_clone_service.folder_delete(user_session.user_id, user_session.session_id)
+        # Dynamo DB purge
+        await dynamo_db_service.delete_session(user_session.user_id, user_session.session_id)
+        # Qdrent DB collection delection
+        chunk_store = ChunkStoreHandler(project_path, user_session.user_id, user_session.session_id)
+        chunk_store.delete_collection(chunk_store.collection_name)
+             
         return {"success": True}
         
     except Exception as e:
@@ -152,7 +162,7 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(lambda: get_l
         if not os.path.exists(project_path):
             raise HTTPException(status_code=400, detail="project Not Avilable")
 
-        collection_info = ChunkStoreHandler(project_path)
+        collection_info = ChunkStoreHandler(project_path, request.user_id, request.session_id)
         contexts, response = await llm.invoke(
             request.ast_flag,
             collection_name=collection_info.collection_name,
@@ -199,7 +209,7 @@ async def query_code_stream(request: QueryRequest, llm: ChatLLM = Depends(lambda
         if not os.path.exists(project_path):
             raise HTTPException(status_code=400, detail="Project Not Available")
         
-        collection_info = ChunkStoreHandler(project_path)
+        collection_info = ChunkStoreHandler(project_path, request.user_id, request.session_id)
         
         # Store the complete response for evaluation and DB storage
         complete_response = []
