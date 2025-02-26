@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional, List
 import uuid
 from git import Repo
@@ -15,6 +16,12 @@ from .utils import *
 
 
 router = APIRouter()
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
 
 
 @router.get("/healthcheck")
@@ -174,39 +181,97 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(lambda: get_l
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# @router.post("/query/stream")
-# async def query_code_stream(request: QueryRequest, llm: ChatLLM = Depends(get_llm)):
-#     """
-#     Endpoint for streaming queries.
 
-#     Args:
-#         request (QueryRequest): Query request with text and limit
+@router.post("/query/stream")
+async def query_code_stream(request: QueryRequest, llm: ChatLLM = Depends(lambda: get_llm("azure"))):
+    """
+    Endpoint for streaming queries with evaluation metrics.
 
-#     Returns:
-#         StreamingResponse: Stream of query results
-#     """
-#     try:
-#         if not os.path.exists(request.path):
-#             raise HTTPException(status_code=400, detail="project Not Avilable")
-#         collection_info = ChunkStoreHandler(request.path)
+    Args:
+        request (QueryRequest): Query request with text and limit
 
-#         async def generate():
-#             for contexts, partial_response in llm.stream(
-#                 request.ast_flag,
-#                 collection_name=collection_info.collection_name,
-#                 query=request.query,
-#                 limit=request.limit,
-#                 temperature=0,
-#             ):
-#                 yield json.dumps(
-#                     {"query": request.query, "contexts": contexts, "partial_response": partial_response.content}
-#                 ) + "\n"
+    Returns:
+        StreamingResponse: Stream of query results with metrics
+    """
+    try:
+        project_path = get_project_path(request.user_id, request.session_id) 
 
-#         return StreamingResponse(generate(), media_type="text/event-stream")
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+        if not os.path.exists(project_path):
+            raise HTTPException(status_code=400, detail="Project Not Available")
+        
+        collection_info = ChunkStoreHandler(project_path)
+        
+        # Store the complete response for evaluation and DB storage
+        complete_response = []
+        last_contexts = None
+
+        async def generate():
+            nonlocal last_contexts, complete_response
+            
+            # Stream all LLM response chunks immediately without any evaluation
+            async for contexts, partial_response in llm.stream(
+                ast_flag=request.ast_flag,
+                collection_name=collection_info.collection_name,
+                user_id=request.user_id,
+                session_id=request.session_id,
+                sys_prompt=request.sys_prompt,
+                query=request.query,
+                limit=request.limit,
+                temperature=0.1
+            ):
+                # Save contexts from the chunk
+                last_contexts = contexts
+                
+                # Save response chunk
+                complete_response.append(partial_response.content)
+                
+                # Stream the chunk immediately without metrics
+                yield json.dumps(
+                    {
+                        "query": request.query, 
+                        "contexts": contexts, 
+                        "partial_response": partial_response.content,
+                        "metric": None  # No metrics during streaming
+                    },
+                    cls=CustomJSONEncoder
+                ) + "\n"
+            
+            # After the stream is completely finished, perform evaluation
+            full_response = "".join(complete_response)
+            evaluation_metrics = evaluator.evaluate(
+                use_llm=request.use_llm == "True",
+                request=request.query,
+                contexts=last_contexts,
+                response=full_response,
+            )
+            
+            # Save to DynamoDB
+            await dynamo_db_service.create_message(
+                request.user_id, 
+                request.session_id, 
+                request.query, 
+                full_response, 
+                evaluation_metrics
+            )
+            
+            # Send a final update with the metrics
+            yield json.dumps(
+                {
+                    "query": request.query, 
+                    "contexts": last_contexts, 
+                    "partial_response": "",  # Empty content since this is just for metrics
+                    "metric": evaluation_metrics
+                },
+                cls=CustomJSONEncoder
+            ) + "\n"
+
+        return StreamingResponse(generate(), media_type="text/event-stream")
+    except Exception as e:
+        logger.error(f"Streaming error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
+    
 # @router.post("/reindex")
 # async def reindex_vectoredb(repo: FileID):
 #     chat_history_path = get_chat_history_class.base_path

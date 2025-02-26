@@ -1,4 +1,5 @@
-from typing import Iterator, Optional, Any, Tuple, List
+import asyncio
+from typing import AsyncIterator, Iterator, Optional, Any, Tuple, List
 from openai import OpenAI
 from qdrant_client import QdrantClient
 from fastapi import APIRouter, HTTPException
@@ -321,16 +322,18 @@ class ChatLLM:
             logger.error(f"LLM request failed: {str(e)}")
             raise Exception(f"LLM request failed: {str(e)}")
 
-    def stream(
-        self, 
-        ast_flag: str,
-        collection_name: str,
-        user_id: str,
-        query: str, 
-        limit: int = 5, 
-        temperature: float = 0, 
-        **kwargs
-    ) -> Iterator[Tuple[list[str], LLMInterface]]:
+    async def stream(
+    self, 
+    ast_flag: str,
+    collection_name: str,
+    user_id: str,
+    session_id: str,
+    sys_prompt: str,
+    query: str, 
+    limit: int = 5, 
+    temperature: float = 0.1,
+    **kwargs
+) -> AsyncIterator[Tuple[list[str], LLMInterface]]:
         """
         Stream LLM responses with context from Qdrant.
         
@@ -338,6 +341,8 @@ class ChatLLM:
             ast_flag (str): Flag for including AST chunks
             collection_name (str): Name of the Qdrant collection
             user_id (str): User identifier
+            session_id (str): Session identifier
+            sys_prompt (str): System prompt
             query (str): User query
             limit (int): Maximum number of context chunks
             temperature (float): LLM temperature parameter
@@ -346,24 +351,43 @@ class ChatLLM:
         Yields:
             Tuple[list[str], LLMInterface]: Contexts and partial LLM response
         """
-        messages, contexts, _ = self.prepare_messages_with_context(
-            ast_flag, collection_name, user_id, query, limit
+        messages, contexts, source_attributes = await self.prepare_messages_with_context(
+            ast_flag, collection_name, user_id, session_id, sys_prompt, query, limit
         )
 
         try:
-            for chunk_data in self.provider.stream(
+            # Get the stream from the provider
+            stream_response = self.provider.stream(
                 messages=self.prepare_message(messages),
                 temperature=temperature,
                 **kwargs
-            ):
-                if chunk_data.get("choices"):
-                    content = chunk_data["choices"][0].get("delta", {}).get("content")
-                    if content:
-                        yield contexts, LLMInterface(content=content)
+            )
+            
+            # If it's a regular generator (not an async generator), convert it to async
+            if not hasattr(stream_response, '__aiter__'):
+                # Process as a regular generator using to_thread
+                for chunk_data in stream_response:
+                    if chunk_data.get("choices"):
+                        content = chunk_data["choices"][0].get("delta", {}).get("content")
+                        if content:
+                            yield contexts, LLMInterface(content=content)
+                    # Give other tasks a chance to run
+                    await asyncio.sleep(0)
+            else:
+                # Process as an async generator
+                async for chunk_data in stream_response:
+                    if chunk_data.get("choices"):
+                        content = chunk_data["choices"][0].get("delta", {}).get("content")
+                        if content:
+                            yield contexts, LLMInterface(content=content)
+            
+            # After all chunks, yield source information
+            yield contexts, LLMInterface(content=f"\nSource files: {', '.join(source_attributes)}")
+                        
         except Exception as e:
             logger.error(f"LLM streaming request failed: {str(e)}")
             raise Exception(f"LLM streaming request failed: {str(e)}")
-
+        
     def get_collection_info(self) -> Optional[dict]:
         """Get information about the current collection"""
         try:
