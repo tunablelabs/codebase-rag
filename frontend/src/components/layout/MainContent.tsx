@@ -66,12 +66,11 @@ function MainContent({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMetricsExpanded, setIsMetricsExpanded] = useState<{[key: string]: boolean}>({});
   const chatContainerRef = useRef<HTMLDivElement>(null);
-
+  const [message, setMessage] = useState("");
   const suggestedQuestions = [
-    "How does this function work?",
-    "Can you summarize this file?",
-    "What are the key dependencies?",
-    "Are there any security risks?",
+    "Onboard me to repo" , 
+    "Summarize key concepts in repo",
+    "What tech stack is used in this repo?"
   ];
 
   useEffect(() => {
@@ -351,18 +350,20 @@ function MainContent({
                   </div>
                 )}
               </div>
+              {message === "" && (
               <div className="mb-2 flex flex-wrap gap-2">
-            {/*{suggestedQuestions.map((question, index) => (
-              <button
-                key={index}
-                //onClick={() => setMessage(question)}
-                className="px-3 py-1 text-sm bg-sky-500/20 text-sky-700 
-                          hover:bg-sky-500/30 rounded-lg transition-all"
-              >
-                {question}
-              </button>
-            ))}*/}
-          </div>
+                {suggestedQuestions.map((question, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setMessage(question)}
+                    className="px-3 py-1 text-sm bg-sky-500/20 text-sky-700 
+                              hover:bg-sky-500/30 rounded-lg transition-all"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
+            )}
             </div>
 
             {showScrollButton && (
@@ -494,14 +495,14 @@ function MainContent({
 
                 <input
                   name="message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
                   placeholder="Ask me about your code..."
                   className="w-full pl-16 pr-16 py-4 rounded-lg
                     bg-base-100/95 dark:bg-base-200/95
                     border border-sky-500/30 dark:border-sky-500/30
                     text-base-content placeholder:text-base-content/50
                     focus:outline-none focus:ring-[0.8px] focus:ring-blue/30
-
-
                     transition-all duration-300"
                   style={{ 
                     fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
