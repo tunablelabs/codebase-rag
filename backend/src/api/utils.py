@@ -102,7 +102,7 @@ class GitCloneService:
             # Save all files preserving their structure
             for file in input_files:
                 # Create full file path
-                file_path = os.path.join(self.base_path, file.filename)
+                file_path = os.path.join(folder_path, file.filename)
                 
                 # Create necessary subdirectories
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -141,10 +141,10 @@ class RepositoryStorageService:
         self.code_parser = CodeParser()
         self.doc_chunker = DocumentChunker()
 
-    def _create_chunk_store(self, repo_path: str) -> ChunkStoreHandler:
+    def _create_chunk_store(self, repo_path: str, user_id: str, session_id: str) -> ChunkStoreHandler:
         """Initialize chunk store for the repository"""
         try:
-            return ChunkStoreHandler(repo_path)
+            return ChunkStoreHandler(repo_path, user_id, session_id)
         except Exception as e:
             raise Exception(f"Failed to initialize chunk store: {str(e)}")
 
@@ -162,7 +162,7 @@ class RepositoryStorageService:
         except Exception as e:
             raise Exception(f"Failed to process document files: {str(e)}")
 
-    def _store_chunks(self, chunk_store: ChunkStoreHandler, 
+    def _store_chunks(self, chunk_store, 
                      chunks: List[Dict]) -> bool:
         """Store chunks in vector database"""
         try:
@@ -170,11 +170,11 @@ class RepositoryStorageService:
         except Exception as e:
             raise Exception(f"Failed to store chunks: {str(e)}")
 
-    def process_repository(self, repo_path: str) -> Dict:
+    def process_repository(self, repo_path: str, user_id: str, session_id: str) -> Dict:
         """Main method to process and store repository data"""
         try:
             # Initialize chunk store
-            chunk_store = self._create_chunk_store(repo_path)
+            chunk_store = self._create_chunk_store(repo_path, user_id, session_id)
 
             # Process code and document chunks
             code_chunks = self._process_code_chunks(repo_path)
