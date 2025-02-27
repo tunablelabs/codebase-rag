@@ -102,7 +102,7 @@ class GitCloneService:
             # Save all files preserving their structure
             for file in input_files:
                 # Create full file path
-                file_path = os.path.join(self.base_path, file.filename)
+                file_path = os.path.join(folder_path, file.filename)
                 
                 # Create necessary subdirectories
                 os.makedirs(os.path.dirname(file_path), exist_ok=True)
