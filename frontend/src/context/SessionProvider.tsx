@@ -5,6 +5,7 @@ import { QueryMetrics } from "@/types/index";
 import { createClient } from "@/utils/supabase/client";
 import { Session } from '@/types';
 import { format } from 'path';
+
 interface SessionContextType {
   sessions: Session[];
   currentSession?: Session;
@@ -12,7 +13,8 @@ interface SessionContextType {
   email: string; 
   isLoading: boolean;
   createSession: (name: string, id: string) => Session;
-  addMessageToSession: (sessionId: string, message: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics }) => void;
+  addMessageToSession: (sessionId: string, message: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics; id?: string }) => void;
+  updateSessionMessage: (sessionId: string, messageId: string, updatedMessage: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics }) => void;
   setSessions: React.Dispatch<React.SetStateAction<Session[]>>;
   setCurrentSessionId: React.Dispatch<React.SetStateAction<string | null>>;
 }
@@ -39,6 +41,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     fetchUser();
   }, []);
+
   const fetchSessions = async () => {
     if (!email) return;
     try {
@@ -53,6 +56,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           const messages = [];
           if (msg.query) {
             messages.push({
+              id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
               type: 'user' as const,
               text: msg.query,
               timestamp: new Date().toISOString()
@@ -60,6 +64,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           }
           if (msg.response) {
             messages.push({
+              id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
               type: 'bot' as const,
               text: msg.response,
               timestamp: new Date().toISOString(),
@@ -103,7 +108,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const addMessageToSession = (
     sessionId: string,
-    message: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics}
+    message: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics; id?: string }
   ) => {
     console.log('added to session',sessionId, message)
     setSessions(prev => prev.map(session => {
@@ -113,6 +118,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           ...session,
           messages: [...session.messages, {
             ...message,
+            id: message.id || Date.now().toString() + Math.random().toString(36).substring(2, 9),
             timestamp: new Date().toISOString(),
           }],
           lastActive: new Date().toISOString(),
@@ -123,8 +129,47 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
+  // New function to update an existing message in a session
+  const updateSessionMessage = (
+    sessionId: string,
+    messageId: string,
+    updatedMessage: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics }
+  ) => {
+    setSessions(prev => prev.map(session => {
+      if (session.session_id === sessionId) {
+        return {
+          ...session,
+          messages: session.messages.map(message => {
+            if (message.id === messageId) {
+              return {
+                ...message,
+                ...updatedMessage,
+                id: messageId,
+                timestamp: message.timestamp, // Keep original timestamp
+              };
+            }
+            return message;
+          }),
+          lastActive: new Date().toISOString(),
+        };
+      }
+      return session;
+    }));
+  };
+
   return (
-    <SessionContext.Provider value={{ sessions, setSessions, email: email ?? "", currentSessionId, currentSession, isLoading, createSession, addMessageToSession, setCurrentSessionId}}>
+    <SessionContext.Provider value={{ 
+      sessions, 
+      setSessions, 
+      email: email ?? "", 
+      currentSessionId, 
+      currentSession, 
+      isLoading, 
+      createSession, 
+      addMessageToSession, 
+      updateSessionMessage, 
+      setCurrentSessionId
+    }}>
       {children}
     </SessionContext.Provider>
   );

@@ -13,3 +13,4 @@ chat_history/
 package-lock.json
 venv
 /tree_build
+tree_build_windows
