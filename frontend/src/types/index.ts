@@ -11,7 +11,9 @@ export interface Message {
   text: string;
   timestamp: string;
   metrics?: QueryMetrics 
+  id: string;
 }
+
 
 export interface Session {
   session_id: string;

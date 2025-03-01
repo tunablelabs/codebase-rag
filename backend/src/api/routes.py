@@ -269,6 +269,10 @@ async def query_code_stream_ws(
                         "partial_response": partial_response.content,
                         "metric": None  # No metrics during streaming
                     })
+
+                    # Small delay between chunks
+                    import asyncio
+                    await asyncio.sleep(0.02)
             
             # After the stream is completely finished, perform evaluation
             full_response = "".join(complete_response)
