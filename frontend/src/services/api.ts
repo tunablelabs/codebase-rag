@@ -153,6 +153,57 @@ export const api = {
     return handleResponse<QueryResponse>(response);
   },
 
+  renameSession: async ({ session_id, new_name, email }: { session_id: string; new_name: string; email: string }) => {
+    try {
+      const response = await fetch(`${BASE_URL}/sessions/rename`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id,
+          new_name,
+          email
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to rename session');
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error('Error in renameSession:', error);
+      throw error;
+    }
+  },
+  
+  // For deleting sessions
+  deleteSession: async ({ session_id, email }: { session_id: string; email: string }) => {
+    try {
+      const response = await fetch(`${BASE_URL}/sessions/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          session_id,
+          email
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete session');
+      }
+  
+      return await response.json();
+    } catch (error) {
+      console.error('Error in deleteSession:', error);
+      throw error;
+    }
+  }
   
 };
 
