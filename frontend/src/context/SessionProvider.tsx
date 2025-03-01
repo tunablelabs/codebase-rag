@@ -157,6 +157,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
       return session;
     }));
+  }
 
   // new function to rename a session
   const renameSession = async (sessionId: string, newName: string): Promise<void> => {
