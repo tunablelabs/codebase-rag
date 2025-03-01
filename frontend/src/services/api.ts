@@ -155,7 +155,7 @@ export const api = {
 
   renameSession: async ({ session_id, new_name, email }: { session_id: string; new_name: string; email: string }) => {
     try {
-      const response = await fetch(`${BASE_URL}/sessions/rename`, {
+      const response = await fetch(`${BASE_URL}/codex/sessions/rename`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +182,7 @@ export const api = {
   // For deleting sessions
   deleteSession: async ({ session_id, email }: { session_id: string; email: string }) => {
     try {
-      const response = await fetch(`${BASE_URL}/sessions/delete`, {
+      const response = await fetch(`${BASE_URL}/codex/sessions/delete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
