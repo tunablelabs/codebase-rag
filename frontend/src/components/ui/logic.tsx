@@ -334,7 +334,8 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     };
     
     // Create WebSocket connection
-    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    //const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const BASE_URL = 'https://codex.tunabledemo.com/'
     const wsProtocol = BASE_URL.startsWith('https') ? 'wss' : 'ws';
     const wsUrl = BASE_URL.replace(/^http(s)?:\/\//, '');
     const ws = new WebSocket(`${wsProtocol}://${wsUrl}/api/codex/query/stream`);
