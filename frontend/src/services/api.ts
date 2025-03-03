@@ -11,7 +11,7 @@ import {
   NListChatSession
 } from '@/types';
 
-const BASE_URL = ' https://codebase-rag-production.up.railway.app/api'
+const BASE_URL = 'https://codebase-rag-production.up.railway.app/api'
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
