@@ -5,7 +5,6 @@ import { QueryMetrics } from "@/types/index";
 import { createClient } from "@/utils/supabase/client";
 import { Session } from '@/types';
 import { format } from 'path';
-
 interface SessionContextType {
   sessions: Session[];
   currentSession?: Session;
@@ -16,8 +15,6 @@ interface SessionContextType {
   addMessageToSession: (sessionId: string, message: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics }) => void;
   setSessions: React.Dispatch<React.SetStateAction<Session[]>>;
   setCurrentSessionId: React.Dispatch<React.SetStateAction<string | null>>;
-  renameSession: (sessionId: string, newName: string) => Promise<void>;
-  deleteSession: (sessionId: string) => Promise<void>;
 }
 
 export const SessionContext = createContext<SessionContextType | null>(null); // Export SessionContext
@@ -126,92 +123,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
-  // new function to rename a session
-  const renameSession = async (sessionId: string, newName: string): Promise<void> => {
-    if (!email) return;
-    
-    try {
-      setIsLoading(true);
-      
-      // calling the API to update the session name on the server
-      await api.renameSession({
-        session_id: sessionId,
-        new_name: newName,
-        email: email
-      });
-      
-      setSessions(prev => prev.map(session => {
-        if (session.session_id === sessionId) {
-          return {
-            ...session,
-            project_name: newName,
-            lastActive: new Date().toISOString()
-          };
-        }
-        return session;
-      }));
-      
-      console.log(`Session ${sessionId} renamed to "${newName}"`);
-    } catch (error) {
-      console.error('[SessionProvider] Error renaming session:', error);
-      throw error; 
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // new function to delete a session
-  const deleteSession = async (sessionId: string): Promise<void> => {
-    if (!email) return;
-    
-    try {
-      setIsLoading(true);
-      
-      // calling the API to delete the session on the server
-      await api.deleteSession({
-        session_id: sessionId,
-        email: email
-      });
-      
-      setSessions(prev => prev.filter(session => session.session_id !== sessionId));
-      
-      if (currentSessionId === sessionId) {
-        const remainingSessions = sessions.filter(s => s.session_id !== sessionId);
-        if (remainingSessions.length > 0) {
-          setCurrentSessionId(remainingSessions[0].session_id);
-        } else {
-          setCurrentSessionId(null);
-        }
-      }
-      
-      console.log(`Session ${sessionId} deleted successfully`);
-    } catch (error) {
-      console.error('[SessionProvider] Error deleting session:', error);
-      throw error; 
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <SessionContext.Provider value={{ 
-      sessions, 
-      setSessions, 
-      email: email ?? "", 
-      currentSessionId, 
-      currentSession, 
-      isLoading, 
-      createSession, 
-      addMessageToSession, 
-      setCurrentSessionId,
-      renameSession,
-      deleteSession
-    }}>
+    <SessionContext.Provider value={{ sessions, setSessions, email: email ?? "", currentSessionId, currentSession, isLoading, createSession, addMessageToSession, setCurrentSessionId}}>
       {children}
     </SessionContext.Provider>
   );
 }
 
+// Custom hook to use the session context
 export function useSessionContext() {
   const context = useContext(SessionContext);
   if (!context) {
