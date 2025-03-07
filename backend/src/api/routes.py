@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Optional, List
 import uuid
 from git import Repo
-from fastapi import APIRouter, Form, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, Form, HTTPException, Depends, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, StreamingResponse
 from qdrant_client import QdrantClient
 from git_repo_parser.stats_parser import StatsParser
@@ -31,6 +31,18 @@ async def health_check():
         return {"status": "healthy"}
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
+   
+    
+@router.post("/follow-up-questions")
+async def follow_up_questions(request: QuestionRequest):
+    """To Generate follow-up-questions for the input question"""
+    try:
+        question = request.question
+        resposne = follow_up_question(question)
+        return QuestionResponse(follow_up_questions=resposne)
+        
+    except Exception as e:
+         raise HTTPException(status_code=500, detail=str(e))
     
 
 @router.post("/create/user")
@@ -191,34 +203,60 @@ async def query_code(request: QueryRequest, llm: ChatLLM = Depends(lambda: get_l
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-@router.post("/query/stream")
-async def query_code_stream(request: QueryRequest, llm: ChatLLM = Depends(lambda: get_llm("azure"))):
+@router.websocket("/query/stream")
+async def query_code_stream_ws(
+    websocket: WebSocket,
+    llm: ChatLLM = Depends(lambda: get_llm("azure"))
+):
     """
-    Endpoint for streaming queries with evaluation metrics.
+    WebSocket endpoint for streaming queries with evaluation metrics.
 
     Args:
-        request (QueryRequest): Query request with text and limit
-
-    Returns:
-        StreamingResponse: Stream of query results with metrics
+        websocket (WebSocket): The WebSocket connection
     """
     try:
+        # Accept the WebSocket connection
+        await websocket.accept()
+        
+        # Helper function to send JSON with custom encoder
+        async def send_json_with_custom_encoder(data):
+            json_str = json.dumps(data, cls=CustomJSONEncoder)
+            await websocket.send_text(json_str)
+        
+        # Wait for the query request data
+        query_data = await websocket.receive_json()
+        
+        # Convert to QueryRequest model
+        try:
+            request = QueryRequest(
+                user_id=query_data.get("user_id", ""),
+                session_id=query_data.get("session_id", ""),
+                query=query_data.get("query", ""),
+                sys_prompt=query_data.get("sys_prompt", ""),
+                limit=query_data.get("limit", 5),
+                ast_flag=query_data.get("ast_flag", "False"),
+                use_llm=query_data.get("use_llm", "False")
+            )
+        except Exception as e:
+            await send_json_with_custom_encoder({"error": f"Invalid request format: {str(e)}"})
+            await websocket.close()
+            return
+        
         project_path = get_project_path(request.user_id, request.session_id) 
 
         if not os.path.exists(project_path):
-            raise HTTPException(status_code=400, detail="Project Not Available")
+            await send_json_with_custom_encoder({"error": "Project Not Available"})
+            await websocket.close()
+            return
         
         collection_info = ChunkStoreHandler(project_path, request.user_id, request.session_id)
         
         # Store the complete response for evaluation and DB storage
         complete_response = []
         last_contexts = None
-
-        async def generate():
-            nonlocal last_contexts, complete_response
-            
-            # Stream all LLM response chunks immediately without any evaluation
+        
+        # Stream all LLM response chunks immediately without any evaluation
+        try:
             async for contexts, partial_response in llm.stream(
                 ast_flag=request.ast_flag,
                 collection_name=collection_info.collection_name,
@@ -233,18 +271,20 @@ async def query_code_stream(request: QueryRequest, llm: ChatLLM = Depends(lambda
                 last_contexts = contexts
                 
                 # Save response chunk
-                complete_response.append(partial_response.content)
+                if partial_response and hasattr(partial_response, 'content'):
+                    complete_response.append(partial_response.content)
                 
-                # Stream the chunk immediately without metrics
-                yield json.dumps(
-                    {
+                    # Stream the chunk immediately via WebSocket without metrics
+                    await send_json_with_custom_encoder({
                         "query": request.query, 
                         "contexts": contexts, 
                         "partial_response": partial_response.content,
                         "metric": None  # No metrics during streaming
-                    },
-                    cls=CustomJSONEncoder
-                ) + "\n"
+                    })
+
+                    # Small delay between chunks
+                    import asyncio
+                    await asyncio.sleep(0.02)
             
             # After the stream is completely finished, perform evaluation
             full_response = "".join(complete_response)
@@ -264,23 +304,31 @@ async def query_code_stream(request: QueryRequest, llm: ChatLLM = Depends(lambda
                 evaluation_metrics
             )
             
-            # Send a final update with the metrics
-            yield json.dumps(
-                {
-                    "query": request.query, 
-                    "contexts": last_contexts, 
-                    "partial_response": "",  # Empty content since this is just for metrics
-                    "metric": evaluation_metrics
-                },
-                cls=CustomJSONEncoder
-            ) + "\n"
-
-        return StreamingResponse(generate(), media_type="text/event-stream")
+            # Send a final update with the metrics via WebSocket
+            await send_json_with_custom_encoder({
+                "query": request.query, 
+                "contexts": last_contexts, 
+                "partial_response": "",  # Empty content since this is just for metrics
+                "metric": evaluation_metrics,
+                "complete": True  # Signal that streaming is complete
+            })
+            
+        except Exception as e:
+            logger.error(f"Streaming error: {str(e)}")
+            await send_json_with_custom_encoder({"error": f"Streaming error: {str(e)}"})
+        
+        # Close the WebSocket connection
+        await websocket.close()
+        
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected")
     except Exception as e:
-        logger.error(f"Streaming error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
+        logger.error(f"WebSocket error: {str(e)}")
+        try:
+            await websocket.send_text(json.dumps({"error": str(e)}))
+            await websocket.close()
+        except:
+            pass  # If sending the error failed, the connection is likely already closed
     
 # @router.post("/reindex")
 # async def reindex_vectoredb(repo: FileID):

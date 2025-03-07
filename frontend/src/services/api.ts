@@ -11,8 +11,8 @@ import {
   NListChatSession
 } from '@/types';
 
-// const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
-const BASE_URL = 'https://codex.tunabledemo.com/api'
+const BASE_URL = 'https://codebase-rag-production.up.railway.app/api'
+
 class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -155,15 +155,15 @@ export const api = {
 
   renameSession: async ({ session_id, new_name, email }: { session_id: string; new_name: string; email: string }) => {
     try {
-      const response = await fetch(`${BASE_URL}/sessions/rename`, {
+      const response = await fetch(`${BASE_URL}/codex/session/rename`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          session_id,
-          new_name,
-          email
+          session_id: session_id,
+          updated_name: new_name,
+          user_id: email
         }),
       });
   
@@ -182,14 +182,14 @@ export const api = {
   // For deleting sessions
   deleteSession: async ({ session_id, email }: { session_id: string; email: string }) => {
     try {
-      const response = await fetch(`${BASE_URL}/sessions/delete`, {
+      const response = await fetch(`${BASE_URL}/codex/session/delete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          session_id,
-          email
+          session_id: session_id,
+          user_id: email
         }),
       });
   

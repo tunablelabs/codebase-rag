@@ -13,7 +13,8 @@ interface SessionContextType {
   email: string; 
   isLoading: boolean;
   createSession: (name: string, id: string) => Session;
-  addMessageToSession: (sessionId: string, message: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics }) => void;
+  addMessageToSession: (sessionId: string, message: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics; id?: string }) => void;
+  updateSessionMessage: (sessionId: string, messageId: string, updatedMessage: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics }) => void;
   setSessions: React.Dispatch<React.SetStateAction<Session[]>>;
   setCurrentSessionId: React.Dispatch<React.SetStateAction<string | null>>;
   renameSession: (sessionId: string, newName: string) => Promise<void>;
@@ -42,6 +43,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     fetchUser();
   }, []);
+
   const fetchSessions = async () => {
     if (!email) return;
     try {
@@ -56,6 +58,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           const messages = [];
           if (msg.query) {
             messages.push({
+              id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
               type: 'user' as const,
               text: msg.query,
               timestamp: new Date().toISOString()
@@ -63,6 +66,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           }
           if (msg.response) {
             messages.push({
+              id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
               type: 'bot' as const,
               text: msg.response,
               timestamp: new Date().toISOString(),
@@ -106,7 +110,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const addMessageToSession = (
     sessionId: string,
-    message: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics}
+    message: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics; id?: string }
   ) => {
     console.log('added to session',sessionId, message)
     setSessions(prev => prev.map(session => {
@@ -116,6 +120,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           ...session,
           messages: [...session.messages, {
             ...message,
+            id: message.id || Date.now().toString() + Math.random().toString(36).substring(2, 9),
             timestamp: new Date().toISOString(),
           }],
           lastActive: new Date().toISOString(),
@@ -125,6 +130,34 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       return session;
     }));
   };
+
+  // New function to update an existing message in a session
+  const updateSessionMessage = (
+    sessionId: string,
+    messageId: string,
+    updatedMessage: { type: 'user' | 'bot'; text: string; metric?: QueryMetrics }
+  ) => {
+    setSessions(prev => prev.map(session => {
+      if (session.session_id === sessionId) {
+        return {
+          ...session,
+          messages: session.messages.map(message => {
+            if (message.id === messageId) {
+              return {
+                ...message,
+                ...updatedMessage,
+                id: messageId,
+                timestamp: message.timestamp, // Keep original timestamp
+              };
+            }
+            return message;
+          }),
+          lastActive: new Date().toISOString(),
+        };
+      }
+      return session;
+    }));
+  }
 
   // new function to rename a session
   const renameSession = async (sessionId: string, newName: string): Promise<void> => {
@@ -191,6 +224,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
+
   };
 
   return (
@@ -203,6 +237,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       isLoading, 
       createSession, 
       addMessageToSession, 
+      updateSessionMessage, 
       setCurrentSessionId,
       renameSession,
       deleteSession
