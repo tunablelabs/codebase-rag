@@ -1,7 +1,7 @@
 from datetime import datetime
 import json
 import shutil
-from typing import List, Dict
+from typing import Any, List, Dict
 from fastapi import HTTPException, logger
 from git import Repo
 from pydantic import BaseModel
@@ -35,6 +35,12 @@ class QueryRequest(BaseModel):
     query: str
     sys_prompt: Optional[str] = ""
     limit: int = 5
+    
+class QuestionRequest(BaseModel):
+    question: str
+
+class QuestionResponse(BaseModel):
+    follow_up_questions: List[str]
     
 class UserID(BaseModel):
     user_id: str
@@ -220,7 +226,7 @@ def get_llm(provider_type: Optional[str] = None) -> ChatLLM:
         if provider_type == "openai" and OPENAI_API_KEY:
             provider = OpenAIProvider(
                 api_key=OPENAI_API_KEY,
-                model="gpt-40"
+                model="gpt-4o"
             )
         elif provider_type == "azure" and AZURE_OPENAI_KEY:
             provider = AzureOpenAIProvider(
@@ -260,32 +266,28 @@ def get_project_path(user_id: str, session_id: str):
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Project File Not found")
     
+def follow_up_question(question: str):
+    provider = OpenAIProvider(
+            api_key=OPENAI_API_KEY,
+            model="gpt-4o-mini"
+        )
+    # Define the messages for follow-up question generation
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant that generates exactly 3 relevant follow-up questions based on an input question. Return ONLY the three questions as a numbered list (1, 2, 3). Do not include any other text."},
+        {"role": "user", "content": f"Generate 3 follow-up questions for this question: {question}"}
+    ]
     
-# async def update_chat_data(file_id: str, user_msg: str, system_msg: str):
-#     chat_history_path = get_chat_history_class.base_path
-#     file_path = os.path.join(chat_history_path, f"{file_id}.json")
-  
-#     try:
-#         with open(file_path, "r") as f:
-#             data = json.load(f)
-
-#         if not data['repo_name']:
-#             return {"success": False, "message": "Project not available"}
-            
-#         data['chat'].append({
-#             "user": user_msg,
-#             "bot": system_msg
-#         })
+    # Call the OpenAI API using the provider
+    response = provider.invoke(
+        messages=messages,
+        temperature=0.4,
+        max_tokens=150
+    )
+    result = response["choices"][0]["message"]["content"]
+    result = result.strip()
+    follow_up_questions = [line.strip() for line in result.split('\n') if line.strip()]
         
-#         data['last_updated'] = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-#         with open(file_path, "w") as f:
-#             json.dump(data, f, indent=2)
-            
-#         return {"success": True}    
-    
-#     except FileNotFoundError:
-#         raise HTTPException(status_code=404, detail="Chat not found")
+    return follow_up_questions
 
 
 # Initialize service

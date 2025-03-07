@@ -31,6 +31,18 @@ async def health_check():
         return {"status": "healthy"}
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
+   
+    
+@router.post("/follow-up-questions")
+async def follow_up_questions(request: QuestionRequest):
+    """To Generate follow-up-questions for the input question"""
+    try:
+        question = request.question
+        resposne = follow_up_question(question)
+        return QuestionResponse(follow_up_questions=resposne)
+        
+    except Exception as e:
+         raise HTTPException(status_code=500, detail=str(e))
     
 
 @router.post("/create/user")
