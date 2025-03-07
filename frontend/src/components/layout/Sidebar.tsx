@@ -3,6 +3,7 @@ import { Edit2, FolderUp, Plus, Trash2, X, Search, Calendar, Check } from 'lucid
 import { useSessionContext } from "@/context/SessionProvider";
 import { useFileUpload } from "@/hooks/useFileUpload"
 import { useGithubUrl } from "@/hooks/useGithubUrl"
+import UploadProgress from "@/components/layout/UploadProgress"; // Import the new component
 
 interface Stats {
   total_code_files: number;
@@ -38,6 +39,7 @@ export default function Sidebar({
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [githubUrl, setGithubUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [renameSessionId, setRenameSessionId] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -93,6 +95,7 @@ export default function Sidebar({
   const handleCreateSession = async () => {
     if (newSessionName) {
       setIsUploading(true);
+      setUploadError(null);
       
       try {
         if (githubUrl) {
@@ -113,24 +116,20 @@ export default function Sidebar({
             displaySuccess("Files successfully uploaded!");
           }
         }
-      
-        setGithubUrl("");
-        setSelectedFiles(null);
-        setInputVisible(false);
       }
       catch (err) {
-        alert("An Unexpected error occurred, Please try again");
-        throw err;
-      }
-      finally {
-        setGithubUrl("");
-        setSelectedFiles(null);
-        setInputVisible(false);
-        setIsUploading(false);
+        setUploadError("An unexpected error occurred. Please try again.");
+        console.error("Upload error:", err);
       }
     }
   };
 
+  const handleUploadComplete = () => {
+    setGithubUrl("");
+    setSelectedFiles(null);
+    setInputVisible(false);
+    setIsUploading(false);
+  };
 
   const handleStartRename = (sessionId: string, currentName: string, e: React.MouseEvent) => {
     e.stopPropagation(); 
@@ -382,92 +381,80 @@ export default function Sidebar({
                 <button 
                   onClick={() => setInputVisible(false)}
                   className="btn btn-ghost btn-sm btn-circle hover:bg-base-200"
+                  disabled={isUploading}
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-base-content/80 block ml-1">
-                  Repository URL
-                </label>
-                <input
-                  type="text"
-                  value={newSessionName}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setNewSessionName(value);
-                    handleUrlChange(value); 
-                  }}
-                  className="input input-bordered w-full focus:ring-2 focus:ring-primary/30 transition-all duration-200"
-                  placeholder="Enter the Github Repository URL"
-                  disabled={isUploading}
-                />
-              </div>
-
-              <div className="text-center my-2 relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-base-300"></div>
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="bg-base-100 px-2 text-xs text-base-content/60">OR</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <label className="flex-1">
-                  <input
-                    type="file"
-                    webkitdirectory="true"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    disabled={isUploading}
+              {isUploading ? (
+                <div className="py-4">
+                  <UploadProgress 
+                    isActive={isUploading} 
+                    onComplete={handleUploadComplete}
+                    error={uploadError}
                   />
-                  <div className="btn btn-secondary w-full flex items-center justify-center gap-2 hover:shadow-md transition-all duration-200">
-                    <FolderUp className="w-5 h-5" />
-                    Upload Folder
-                  </div>
-                </label>
-
-                <div className="flex gap-2 flex-1">
-                  <button
-                    onClick={handleCreateSession}
-                    className="btn btn-primary flex-1 hover:shadow-md transition-all duration-200"
-                    disabled={isUploading}
-                  >
-                    {isUploading ? (
-                      <>
-                        <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                            fill="none"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4l4-4-4-4v4a8 8 0 00-8 8z"
-                          />
-                        </svg>
-                        Uploading...
-                      </>
-                    ) : (
-                      "Create Chat"
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => setInputVisible(false)}
-                    className="btn btn-ghost hover:bg-base-200"
-                  >
-                    Cancel
-                  </button>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-base-content/80 block ml-1">
+                      Repository URL
+                    </label>
+                    <input
+                      type="text"
+                      value={newSessionName}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setNewSessionName(value);
+                        handleUrlChange(value); 
+                      }}
+                      className="input input-bordered w-full focus:ring-2 focus:ring-primary/30 transition-all duration-200"
+                      placeholder="Enter the Github Repository URL"
+                    />
+                  </div>
+
+                  <div className="text-center my-2 relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-base-300"></div>
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-base-100 px-2 text-xs text-base-content/60">OR</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <label className="flex-1">
+                      <input
+                        type="file"
+                        webkitdirectory="true"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <div className="btn btn-secondary w-full flex items-center justify-center gap-2 hover:shadow-md transition-all duration-200">
+                        <FolderUp className="w-5 h-5" />
+                        Upload Folder
+                      </div>
+                    </label>
+
+                    <div className="flex gap-2 flex-1">
+                      <button
+                        onClick={handleCreateSession}
+                        className="btn btn-primary flex-1 hover:shadow-md transition-all duration-200"
+                      >
+                        Create Chat
+                      </button>
+
+                      <button
+                        onClick={() => setInputVisible(false)}
+                        className="btn btn-ghost hover:bg-base-200"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
