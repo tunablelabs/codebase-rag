@@ -7866,5 +7866,6 @@
     "_simple_type",
     "_unannotated_type",
     "module_directive"
-  ]
+  ],
+  "reserved": {}
 }
