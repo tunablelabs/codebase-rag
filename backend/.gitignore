@@ -11,3 +11,4 @@ local_user_database.db
 .npmrc
 package-lock.json
 venv
+.venv

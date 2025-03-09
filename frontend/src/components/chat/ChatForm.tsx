@@ -1,7 +1,5 @@
 import { FormEvent, useState } from 'react';
 import { Settings, Send, ChevronUp, ChevronDown } from 'lucide-react';
-import { NotificationBanner } from '@/components/ui/notification-banner';
-import { useMessageLimits } from '@/hooks/useMessageLimits';
 
 interface ChatFormProps {
   question: string;
@@ -29,28 +27,16 @@ export default function ChatForm({
   isPending
 }: ChatFormProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const { messagesLeft, shouldShowNotification, refreshLimits } = useMessageLimits();
 
   const handleResetPrompt = () => {
     setPrompt("You are a coding assistant. Please answer the user's coding questions step by step, considering the code content and file structure. If unsure, say 'I don't know.'");
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    await onSubmit(e);
-    // Refresh limits after submission
-    refreshLimits();
-  };
-
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 p-4">
       <div className="max-w-4xl mx-auto">
-        {/* Notification Banner */}
-        <NotificationBanner 
-          messagesLeft={messagesLeft} 
-          isVisible={shouldShowNotification} 
-        />
-        
-        <form onSubmit={handleSubmit} className="relative">
+        <form onSubmit={onSubmit} className="relative">
+    
           <div className={`
             absolute bottom-full left-0 right-0 mb-2
             bg-white dark:bg-slate-900 
@@ -119,6 +105,7 @@ export default function ChatForm({
             </div>
           </div>
 
+          
           <div className="relative flex items-center bg-white dark:bg-slate-900 rounded-lg shadow-sm">
             <button
               type="button"

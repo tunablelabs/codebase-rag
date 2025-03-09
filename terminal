@@ -1,6 +1,0 @@
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
-npm install lucide-react class-variance-authority 
-python3 main.py 
-brew install python 
-ln -s $(which python3) /usr/local/bin/python 
