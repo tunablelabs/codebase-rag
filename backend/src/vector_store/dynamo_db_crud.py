@@ -8,6 +8,7 @@ from datetime import datetime
 from config.config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION
 
 class DynamoDBManager:
+    
     """
     Manages DynamoDB operations for a chat application using aioboto3.
     Handles users, sessions, and messages in a single table design.
