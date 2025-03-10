@@ -17,7 +17,6 @@ export default function ChatPage() {
     sessionId: undefined,
     llmEvaluator:false 
   });
-
   interface Stats {
     total_code_files: number;
     language_distribution: {
