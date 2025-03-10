@@ -53,8 +53,7 @@ async def check_create_user(user_id: UserID):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-    
+ 
 @router.post("/create/session/uploadproject")
 async def upload_folder(
     user_id: str = Form(...),
