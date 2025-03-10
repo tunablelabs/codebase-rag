@@ -27,7 +27,6 @@ class CustomJSONEncoder(json.JSONEncoder):
             return float(obj)
         return super().default(obj)
 
-
 @router.get("/healthcheck")
 async def health_check():
     """Check system health and vector store connection"""
