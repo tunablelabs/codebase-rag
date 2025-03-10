@@ -251,7 +251,7 @@ def get_llm(provider_type: Optional[str] = None) -> ChatLLM:
         )
         
     except Exception as e:
-        logger.error(f"Failed to create LLM instance: {str(e)}")
+        logging.info(f"Failed to create LLM instance: {str(e)}")
         raise
     
 def get_project_path(user_id: str, session_id: str):

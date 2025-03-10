@@ -17,11 +17,10 @@ export default function ChatPage() {
     sessionId: undefined,
     llmEvaluator:false 
   });
-
   interface Stats {
     total_code_files: number;
     language_distribution: {
-      [language: string]: string; 
+      [language: string]: string;
     };
   }
 
@@ -31,7 +30,9 @@ export default function ChatPage() {
   const [isFilesVisible, setIsFilesVisible] = useState(false);
   const [isStatsVisible, setIsStatsVisible] = useState(false);
   const { sessions, currentSessionId, email, createSession, setSessions, currentSession, addMessageToSession, updateSessionMessage } = useSessionContext();
-  
+
+  const [limitReachedMessage, setLimitReachedMessage] = useState<string | null>(null);
+
   const handlestatsUpload = useCallback((stats: Stats) => {
     console.log('handle stats upload invoked', stats)
     setIsStatsVisible(true);
@@ -49,15 +50,15 @@ export default function ChatPage() {
       });
 
       const uniqueFolders = Array.from(folderSet);
-      //const fileNames = Array.from(fileList).map((file) => file.webkitRelativePath || file.name); 
+      //const fileNames = Array.from(fileList).map((file) => file.webkitRelativePath || file.name);
       setFiles(uniqueFolders);
       setIsFilesVisible(true);
-  
+
     } catch (error) {
       console.error("File upload failed:", error);
     }
   };
-  
+
   // Add this useEffect to handle stats updates
   useEffect(() => {
     const updateStatsForSession = async () => {
@@ -81,13 +82,13 @@ export default function ChatPage() {
 
     updateStatsForSession();
   }, [currentSessionId, handlestatsUpload]);
-  
+
   // const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
   //   e.preventDefault();
   //   setIsPending(true);
   //   const formData = new FormData(e.currentTarget);
   //   const content = formData.get('message') as string;
-    
+
   //   const astFlagValue = chatOptions.astFlag ? "True" : "False";
   //   const llmEvaluatorValue = chatOptions.llmEvaluator ? "True" : "False";
   //   const prompt = chatOptions.systemPrompt;
@@ -106,36 +107,36 @@ export default function ChatPage() {
   //     type: "user",
   //     text: content
   //   });
-   
+
 
   //   try {
   //     const queryRequest: QueryRequest = {
   //       user_id: email,
   //       session_id: currentSessionId,
-  //       use_llm: llmEvaluatorValue, 
+  //       use_llm: llmEvaluatorValue,
   //       ast_flag: astFlagValue,
   //       query: content,
   //       sys_prompt: prompt,
   //       limit: 5, // You can modify this limit as needed
   //     };
-      
+
   //     const response = await fetch(`https://localhost:8000/api/codex/query/stream`, {
   //       method: "POST",
   //       headers: { "Content-Type": "application/json" },
   //       body: JSON.stringify(queryRequest),
   //     });
-  
+
   //     if (!response.body) throw new Error("No response body received");
-  
+
   //     const reader = response.body.getReader();
   //     const decoder = new TextDecoder();
   //     let botMessage = "";
-  
+
   //     while (true) {
   //       const { done, value } = await reader.read();
   //       if (done) break;
   //       botMessage += decoder.decode(value, { stream: true });
-  
+
   //       addMessageToSession(currentSessionId, {
   //         type: "bot",
   //         text: botMessage,
@@ -165,63 +166,63 @@ export default function ChatPage() {
   //   setIsPending(true);
   //   const formData = new FormData(e.currentTarget);
   //   const content = formData.get('message') as string;
-    
+
   //   const astFlagValue = chatOptions.astFlag ? "True" : "False";
   //   const llmEvaluatorValue = chatOptions.llmEvaluator ? "True" : "False";
   //   const prompt = chatOptions.systemPrompt;
-  
+
   //   if (!currentSessionId) {
   //     alert("Please create a new session first.");
   //     setIsPending(false);
   //     return;
   //   }
-  
+
   //   if (!content.trim()) {
   //     return;
   //   }
-    
+
   //   // Add user message to the session
   //   addMessageToSession(currentSessionId, {
   //     type: "user",
   //     text: content
   //   });
-   
+
   //   // Create a placeholder for the bot response
   //   addMessageToSession(currentSessionId, {
   //     type: "bot",
   //     text: "",
   //   });
-  
+
   //   try {
   //     // Prepare the query request
   //     const queryRequest: QueryRequest = {
   //       user_id: email,
   //       session_id: currentSessionId,
-  //       use_llm: llmEvaluatorValue, 
+  //       use_llm: llmEvaluatorValue,
   //       ast_flag: astFlagValue,
   //       query: content,
   //       sys_prompt: prompt,
   //       limit: 5,
   //     };
-      
+
   //     // Create WebSocket connection
   //     const ws = new WebSocket(`ws://localhost:8000/api/codex/query/stream`);
-      
+
   //     // Initialize bot message
   //     let botMessage = "";
   //     // Define metrics interface using QueryMetrics from types
   //     let currentMetrics: undefined = undefined;
-      
+
   //     // Handle WebSocket open event - send the query
   //     ws.onopen = () => {
   //       console.log("WebSocket connection established");
   //       ws.send(JSON.stringify(queryRequest));
   //     };
-      
+
   //     // Handle incoming messages
   //     ws.onmessage = (event) => {
   //       const data = JSON.parse(event.data);
-        
+
   //       // Check for errors
   //       if (data.error) {
   //         console.error("WebSocket error:", data.error);
@@ -232,7 +233,7 @@ export default function ChatPage() {
   //         ws.close();
   //         return;
   //       }
-        
+
   //       // Handle partial responses
   //       if (data.partial_response) {
   //         botMessage += data.partial_response;
@@ -242,7 +243,7 @@ export default function ChatPage() {
   //           metric: currentMetrics,
   //         });
   //       }
-        
+
   //       // Save metrics if provided
   //       if (data.metric) {
   //         currentMetrics = data.metric;
@@ -252,13 +253,13 @@ export default function ChatPage() {
   //           metric: currentMetrics,
   //         });
   //       }
-        
+
   //       // If streaming is complete, close the connection
   //       if (data.complete) {
   //         ws.close();
   //       }
   //     };
-      
+
   //     // Handle WebSocket errors
   //     ws.onerror = (error) => {
   //       console.error("WebSocket error:", error);
@@ -269,28 +270,30 @@ export default function ChatPage() {
   //       });
   //       setIsPending(false);
   //     };
-      
+
   //     // Handle WebSocket close
   //     ws.onclose = () => {
   //       console.log("WebSocket connection closed");
   //       setIsPending(false);
   //       setIsFilesVisible(true);
   //     };
-      
+
   //   } catch (error) {
   //     console.error("Failed to send message:", error);
   //     setIsPending(false);
   //   }
   // };
-  
+
 //  Claude 3.7 code here
 
 const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
   e.preventDefault();
   setIsPending(true);
+  setLimitReachedMessage(null); // Clear any prior message
+
   const formData = new FormData(e.currentTarget);
   const content = formData.get('message') as string;
-  
+
   const astFlagValue = chatOptions.astFlag ? "True" : "False";
   const llmEvaluatorValue = chatOptions.llmEvaluator ? "True" : "False";
   const prompt = chatOptions.systemPrompt;
@@ -304,16 +307,16 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
   if (!content.trim()) {
     return;
   }
-  
+
   // Add user message to the session
   addMessageToSession(currentSessionId, {
     type: "user",
     text: content
   });
- 
+
   // Add a single bot message that we'll update as streaming occurs
   const botMessageId = Date.now().toString(); // Create a unique ID for this message
-  
+
   // Add initial empty bot message
   addMessageToSession(currentSessionId, {
     id: botMessageId,
@@ -326,35 +329,35 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     const queryRequest: QueryRequest = {
       user_id: email,
       session_id: currentSessionId,
-      use_llm: llmEvaluatorValue, 
+      use_llm: llmEvaluatorValue,
       ast_flag: astFlagValue,
       query: content,
       sys_prompt: prompt,
       limit: 5,
     };
-    
+
     // Create WebSocket connection
-    //const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const BASE_URL = 'https://codebase-rag-production.up.railway.app'
+    const BASE_URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:8000';
+    // const BASE_URL = 'https://codebase-rag-production.up.railway.app'
     const wsProtocol = BASE_URL.startsWith('https') ? 'wss' : 'ws';
     const wsUrl = BASE_URL.replace(/^http(s)?:\/\//, '');
     const ws = new WebSocket(`${wsProtocol}://${wsUrl}/api/codex/query/stream`);
-    
+
     // Initialize bot message
     let botMessage = "";
     // Define metrics interface using QueryMetrics from types
     let currentMetrics :any = undefined;
-    
+
     // Handle WebSocket open event - send the query
     ws.onopen = () => {
       console.log("WebSocket connection established");
       ws.send(JSON.stringify(queryRequest));
     };
-    
+
     // Handle incoming messages
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      
+
       // Check for errors
       if (data.error) {
         console.error("WebSocket error:", data.error);
@@ -366,7 +369,23 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         ws.close();
         return;
       }
-      
+       if (data.limit_reached) {
+          console.warn("User has reached daily limit:", data.message);
+
+          // Show the message in UI
+          setLimitReachedMessage(data.message || "You have reached your daily limit.");
+          setIsPending(false);
+
+          // Optionally update the last bot message or create a new one
+          updateSessionMessage(currentSessionId, botMessageId, {
+            type: "bot",
+            text: data.message || "You have reached your daily limit.",
+          });
+
+          ws.close();
+          return;
+        }
+
       // Handle partial responses
       if (data.partial_response) {
         botMessage += data.partial_response;
@@ -377,7 +396,7 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
           metric: currentMetrics,
         });
       }
-      
+
       // Save metrics if provided
       if (data.metric) {
         currentMetrics = data.metric;
@@ -388,13 +407,13 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
           metric: currentMetrics,
         });
       }
-      
+
       // If streaming is complete, close the connection
       if (data.complete) {
         ws.close();
       }
     };
-    
+
     // Handle WebSocket errors
     ws.onerror = (error) => {
       console.error("WebSocket error:", error);
@@ -406,14 +425,14 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
       });
       setIsPending(false);
     };
-    
+
     // Handle WebSocket close
     ws.onclose = () => {
       console.log("WebSocket connection closed");
       setIsPending(false);
       setIsFilesVisible(true);
     };
-    
+
   } catch (error) {
     console.error("Failed to send message:", error);
     setIsPending(false);
@@ -429,6 +448,12 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         onFileUpload={handleFileUpload}
         handlestatsUpload={handlestatsUpload}
       />
+      {/* 3) Example UI banner if user has exceeded daily limit */}
+      {limitReachedMessage && (
+        <div className="absolute top-0 left-0 right-0 bg-red-500 text-white p-4 text-center">
+          {limitReachedMessage}
+        </div>
+      )}
       <MainContent
         currentSession={currentSession || null}
         isFilesVisible={isFilesVisible}
@@ -437,7 +462,7 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         files={files}
         isPending={isPending}
         chatOptions={chatOptions}
-        onSubmit={handleSubmit} 
+        onSubmit={handleSubmit}
         onPromptChange={(prompt) => setChatOptions(prev => ({ ...prev, systemPrompt: prompt }))}
         onResetPrompt={() => setChatOptions(prev => ({
           ...prev,
@@ -450,5 +475,4 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     </div>
   );
 }
-
 

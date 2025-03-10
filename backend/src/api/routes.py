@@ -13,7 +13,11 @@ from config.config import QDRANT_HOST, QDRANT_API_KEY
 import json
 import os
 from .utils import *
+import traceback
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 router = APIRouter()
 
@@ -257,6 +261,30 @@ async def query_code_stream_ws(
         
         # Stream all LLM response chunks immediately without any evaluation
         try:
+
+            limit_checker = await dynamo_db_service.check_for_limit(request.user_id,
+                                                                    request.session_id,
+                                                                    request.query)
+            logger.info(f'limit_checker:{limit_checker}')
+            # Check if message creation was successful or if user hit limits
+            # If the user has reached (or exceeded) their limit
+            if not limit_checker.get("success", True) and "limit_info" in limit_checker:
+                limit_message = limit_checker["limit_info"].get("notification_message", "Daily message limit reached")
+                await send_json_with_custom_encoder({
+                    "limit_reached": True,
+                    "message": limit_message,
+                    "remaining": 0,
+                    "complete": True
+                })
+                # Stop streaming since user is out of messages
+                await websocket.close()
+                return
+
+            remaining = limit_checker.get("limit_info", {}).get("remaining_messages", None)
+            if remaining is not None and remaining <= 5:
+                await send_json_with_custom_encoder({
+                    "notification": f"Warning: You have only {remaining} messages left."
+                })
             async for contexts, partial_response in llm.stream(
                 ast_flag=request.ast_flag,
                 collection_name=collection_info.collection_name,
@@ -285,7 +313,7 @@ async def query_code_stream_ws(
                     # Small delay between chunks
                     import asyncio
                     await asyncio.sleep(0.02)
-            
+
             # After the stream is completely finished, perform evaluation
             full_response = "".join(complete_response)
             evaluation_metrics = evaluator.evaluate(
@@ -314,7 +342,8 @@ async def query_code_stream_ws(
             })
             
         except Exception as e:
-            logger.error(f"Streaming error: {str(e)}")
+            print(traceback.format_exc())
+            logger.info(f"Streaming error: {str(e)}")
             await send_json_with_custom_encoder({"error": f"Streaming error: {str(e)}"})
         
         # Close the WebSocket connection
@@ -323,7 +352,7 @@ async def query_code_stream_ws(
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected")
     except Exception as e:
-        logger.error(f"WebSocket error: {str(e)}")
+        logger.info(f"WebSocket error: {str(e)}")
         try:
             await websocket.send_text(json.dumps({"error": str(e)}))
             await websocket.close()
