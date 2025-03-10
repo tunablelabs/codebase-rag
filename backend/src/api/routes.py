@@ -38,8 +38,8 @@ async def follow_up_questions(request: QuestionRequest):
     """To Generate follow-up-questions for the input question"""
     try:
         question = request.question
-        resposne = follow_up_question(question)
-        return QuestionResponse(follow_up_questions=resposne)
+        response = follow_up_question(question)
+        return QuestionResponse(follow_up_questions=response)
         
     except Exception as e:
          raise HTTPException(status_code=500, detail=str(e))
@@ -149,8 +149,8 @@ async def analyze_repository(user_session: UserSessionID):
     try:
         project_path = get_project_path(user_session.user_id, user_session.session_id)
         if not os.path.exists(project_path):
-            raise HTTPException(status_code=400, detail="project Not Avilable")
-        print(project_path)
+            raise HTTPException(status_code=400, detail="project not available")
+        # logging.info('project_path', project_path)
         parser = StatsParser(project_path)
         return await parser.get_stats()
     except Exception as e:
@@ -257,6 +257,23 @@ async def query_code_stream_ws(
         
         # Stream all LLM response chunks immediately without any evaluation
         try:
+            limit_checker = await dynamo_db_service.check_for_limit( request.user_id,
+                request.session_id,
+                request.query)
+            # Check if message creation was successful or if user hit limits
+            # If the user has reached (or exceeded) their limit
+            if not limit_checker.get("success", True) and "limit_info" in limit_checker:
+                limit_message = limit_checker["limit_info"].get("notification_message", "Daily message limit reached")
+                await send_json_with_custom_encoder({
+                    "limit_reached": True,
+                    "message": limit_message,
+                    "remaining": 0,
+                    "complete": True
+                })
+                # Stop streaming since user is out of messages
+                await websocket.close()
+                return
+
             async for contexts, partial_response in llm.stream(
                 ast_flag=request.ast_flag,
                 collection_name=collection_info.collection_name,
@@ -303,7 +320,6 @@ async def query_code_stream_ws(
                 full_response, 
                 evaluation_metrics
             )
-            
             # Send a final update with the metrics via WebSocket
             await send_json_with_custom_encoder({
                 "query": request.query, 
@@ -314,16 +330,16 @@ async def query_code_stream_ws(
             })
             
         except Exception as e:
-            logger.error(f"Streaming error: {str(e)}")
+            logging.error(f"Streaming error: {str(e)}")
             await send_json_with_custom_encoder({"error": f"Streaming error: {str(e)}"})
         
         # Close the WebSocket connection
         await websocket.close()
         
     except WebSocketDisconnect:
-        logger.info(f"WebSocket disconnected")
+        logging.info(f"WebSocket disconnected")
     except Exception as e:
-        logger.error(f"WebSocket error: {str(e)}")
+        logging.error(f"WebSocket error: {str(e)}")
         try:
             await websocket.send_text(json.dumps({"error": str(e)}))
             await websocket.close()

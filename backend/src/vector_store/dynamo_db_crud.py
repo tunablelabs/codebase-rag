@@ -1,3 +1,4 @@
+import logging
 from decimal import Decimal
 import json
 import aioboto3
@@ -83,7 +84,9 @@ class DynamoDBManager:
 
     async def create_session(self, user_id: str, session_id: str) -> Dict:
         """Create a new session for a user."""
-        project_name = session_id.split('_', 1)[1]
+        # project_name = session_id.split('_', 1)[1]
+        parts = session_id.split('_', 1)
+        project_name = parts[1] if len(parts) > 1 else "Unknown"
         item = {
             'PK': f'USER#{user_id}',
             'SK': f'SESSION#{session_id}',
@@ -98,43 +101,6 @@ class DynamoDBManager:
         
         except ClientError as e:
             print(f"Error creating session: {e}")
-            return {'success': False, 'error': str(e)}
-
-    async def create_message(self, user_id: str, session_id: str, query: str, response: str, metrics: Dict, ) -> Dict:
-        """Create a new message in a session."""
-        # Convert all scores to Decimal
-        for metric_values in metrics.values():
-            score = metric_values['score']
-            metric_values['score'] = Decimal(str(round(score,2)))
-
-        message_id = str(uuid.uuid4())
-        item = {
-            'PK': f'USER#{user_id}#SESSION#{session_id}',
-            'SK': f'MESSAGE#{message_id}',
-            'query': query,
-            'response': response,
-            'metrics': metrics,
-            'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        }
-        try:
-            table = await self.get_table()
-            await table.put_item(Item=item)
-            
-            # Update session timestamp
-            await table.update_item(
-                Key={
-                    'PK': f'USER#{user_id}',
-                    'SK': f'SESSION#{session_id}'
-                },
-                UpdateExpression='SET updated_at = :timestamp',
-                ExpressionAttributeValues={
-                    ':timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                }
-            )
-        
-            return {'success': True}
-        except ClientError as e:
-            print(f"Error creating message: {e}")
             return {'success': False, 'error': str(e)}
 
     async def get_user(self, user_id: str) -> Dict:
@@ -171,7 +137,7 @@ class DynamoDBManager:
             sessions = response.get('Items', [])
             
             # First sort the sessions based on created_at timestamp in descending order (newest first)
-            sorted_sessions = sorted(sessions, key=lambda x: x['updated_at'], reverse=True)
+            sorted_sessions = sorted(sessions, key=lambda x: x.get('updated_at', ''), reverse=True)
             for session in sorted_sessions:
                 session_data = {
                     "session_id":[],
@@ -250,7 +216,7 @@ class DynamoDBManager:
             )
             messages = response.get('Items', [])
             # First sort the messages based on created_at timestamp in Ascending order (newest being the latest)
-            sorted_messages = sorted(messages, key=lambda x: x['updated_at'])
+            sorted_messages = sorted(messages, key=lambda x: x.get('updated_at', ''), reverse=False)
             # Required keys 
             specific_keys = ['query', 'response', 'metrics']
             # Fetch the required keys and values
@@ -267,18 +233,18 @@ class DynamoDBManager:
         Check if a user has reached their daily message limit.
 
         Args:
-            user_id: The ID of the user to check
-            limit: Maximum number of messages allowed per day (default: 20)
+            user_id: The ID of the user to check.
+            limit: Maximum number of messages allowed per day (default: 20).
 
         Returns:
-            Dict containing limit status, message count, and notification flags
+            Dict containing limit status, message count, and notification flags.
         """
         try:
             table = await self.get_table()
 
-            # Calculate the start of the current day in UTC
-            today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            today_str = today.strftime('%Y-%m-%d %H:%M:%S')
+            # Calculate the start of today as a formatted string to match how we store timestamps
+            today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).strftime(
+                '%Y-%m-%d %H:%M:%S')
 
             # Query all user sessions
             sessions_response = await table.query(
@@ -291,7 +257,6 @@ class DynamoDBManager:
 
             sessions = sessions_response.get('Items', [])
 
-            # Track today's messages across all sessions
             today_message_count = 0
 
             # Check messages in each session
@@ -305,26 +270,26 @@ class DynamoDBManager:
                     ExpressionAttributeValues={
                         ':pk': f'USER#{user_id}#SESSION#{session_id}',
                         ':sk': 'MESSAGE#',
-                        ':today': today_str
+                        ':today': today_start  # Using formatted string timestamp for filtering
                     }
                 )
 
-                today_message_count += len(messages_response.get('Items', []))
+                # today_message_count += len(messages_response.get('Items', []))
+                if messages_response.get('Items'):
+                    for item in messages_response.get('Items'):
+                        if 'response' in item:  # Check if the item has a 'response' field
+                            today_message_count += 1
 
             remaining = max(0, limit - today_message_count)
-
-            # Check if we need to show threshold notifications
-            show_notification_10 = remaining == 10
-            show_notification_5 = remaining == 5
+            logging.info("Remaining messages: %s", remaining)
 
             return {
                 'success': True,
+                'user_id': user_id,
                 'limit_reached': today_message_count >= limit,
                 'count': today_message_count,
                 'limit': limit,
                 'remaining': remaining,
-                'show_notification_10': show_notification_10,
-                'show_notification_5': show_notification_5,
                 'notification_message': self._get_notification_message(remaining)
             }
 
@@ -346,18 +311,17 @@ class DynamoDBManager:
         Returns:
             Notification message or None if no notification needed
         """
-        if remaining == 10:
-            return "You have 10 messages remaining for today. Your daily limit is 20 messages."
-        elif remaining == 5:
-            return "You have only 5 messages remaining for today. Your daily limit is 20 messages."
+        if remaining == 5:
+            return "You have 5 message remaining for today. Your daily limit is 5 messages."
         elif remaining == 0:
-            return "You have reached your daily limit of 20 messages. Your limit will reset tomorrow."
+            return "You have reached your daily limit of 5 messages. Your limit will reset tomorrow."
         else:
             return None
 
     async def create_message(self, user_id: str, session_id: str, query: str, response: str, metrics: Dict) -> Dict:
         """Create a new message in a session if daily limit not exceeded."""
         # First check if user has reached their daily limit
+        # reset = await self.reset_daily_message_count(user_id)
         limit_check = await self.check_daily_message_limit(user_id)
 
         if not limit_check['success']:
@@ -384,6 +348,7 @@ class DynamoDBManager:
             'response': response,
             'metrics': metrics,
             'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
         }
 
         try:
@@ -410,15 +375,138 @@ class DynamoDBManager:
             print(f"Error creating message: {e}")
             return {'success': False, 'error': str(e)}
 
-    async def get_remaining_daily_messages(self, user_id: str) -> Dict:
+    async def check_for_limit(self, user_id: str, session_id: str, query: str) -> Dict:
+        """Create a new message in a session if daily limit not exceeded."""
+        # First check if user has reached their daily limit
+        # reset = await self.reset_daily_message_count(user_id)
+        limit_check = await self.check_daily_message_limit(user_id)
+
+        if not limit_check['success']:
+            return {'success': False, 'error': limit_check.get('error', 'Error checking message limit'),
+                    'notification': limit_check.get('notification_message', '')}
+
+        if limit_check['limit_reached']:
+            return {
+                'success': False,
+                'error': 'Daily message limit reached',
+                'limit_info': limit_check
+            }
+
+        # If limit not reached, proceed with creating the message
+
+        message_id = str(uuid.uuid4())
+        item = {
+            'PK': f'USER#{user_id}#SESSION#{session_id}',
+            'SK': f'MESSAGE#{message_id}',
+            'query': query,
+            'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        }
+
+        try:
+            table = await self.get_table()
+            await table.put_item(Item=item)
+
+            # Update session timestamp
+            await table.update_item(
+                Key={
+                    'PK': f'USER#{user_id}',
+                    'SK': f'SESSION#{session_id}'
+                },
+                UpdateExpression='SET updated_at = :timestamp',
+                ExpressionAttributeValues={
+                    ':timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            )
+
+            # Check limits after creating the message to get updated counts
+            updated_limit = await self.check_daily_message_limit(user_id)
+            return {'success': True, 'limit_info': updated_limit}
+
+        except ClientError as e:
+            print(f"Error creating message: {e}")
+            return {'success': False, 'error': str(e)}
+
+    async def get_remaining_daily_messages(self, user_id: str) -> int:
+        limit_info = await self.check_daily_message_limit(user_id)
+        return limit_info.get("remaining", 0)
+
+    async def reset_daily_message_count(self, user_id: str) -> Dict:
         """
-        Utility method to check remaining daily messages without creating a message.
-        Useful for displaying limit information in the UI.
+        Reset a user's daily message count by updating the timestamp on all messages sent today.
+        This effectively makes them appear as if they were sent yesterday.
 
         Args:
-            user_id: The ID of the user to check
+            user_id: The ID of the user whose message count should be reset.
 
         Returns:
-            Dict containing limit information
+            Dict containing success status and count of messages reset.
         """
-        return await self.check_daily_message_limit(user_id)
+        try:
+            table = await self.get_table()
+
+            # Calculate today's start as a formatted string
+            today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).strftime(
+                '%Y-%m-%d %H:%M:%S')
+
+            # Calculate yesterday's timestamp (for resetting messages)
+            # Correct import of timedelta
+            from datetime import timedelta
+            yesterday = (datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) -
+                         timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S')
+
+            # Query all user sessions
+            sessions_response = await table.query(
+                KeyConditionExpression='PK = :pk AND begins_with(SK, :sk)',
+                ExpressionAttributeValues={
+                    ':pk': f'USER#{user_id}',
+                    ':sk': 'SESSION#'
+                }
+            )
+
+            sessions = sessions_response.get('Items', [])
+            reset_count = 0
+
+            # Process each session
+            for session in sessions:
+                session_id = session['SK'].split('#')[1]
+
+                # Query messages created today
+                messages_response = await table.query(
+                    KeyConditionExpression='PK = :pk AND begins_with(SK, :sk)',
+                    FilterExpression='updated_at >= :today',
+                    ExpressionAttributeValues={
+                        ':pk': f'USER#{user_id}#SESSION#{session_id}',
+                        ':sk': 'MESSAGE#',
+                        ':today': today_start
+                    }
+                )
+
+                today_messages = messages_response.get('Items', [])
+
+                # Update each message's timestamp to yesterday
+                for message in today_messages:
+                    await table.update_item(
+                        Key={
+                            'PK': message['PK'],
+                            'SK': message['SK']
+                        },
+                        UpdateExpression='SET updated_at = :yesterday',
+                        ExpressionAttributeValues={
+                            ':yesterday': yesterday
+                        }
+                    )
+                    reset_count += 1
+
+            return {
+                'success': True,
+                'reset_count': reset_count,
+                'message': f"Successfully reset {reset_count} messages for user {user_id}"
+            }
+
+        except ClientError as e:
+            print(f"Error resetting message count: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }

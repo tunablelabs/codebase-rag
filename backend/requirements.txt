@@ -6,7 +6,7 @@ tree-sitter==0.20.1
 python-dotenv==1.0.1
 openai==1.59.9
 langchain-text-splitters==0.3.5
-deepeval
+deepeval==2.1.9
 nltk==3.9.1
 python-multipart==0.0.20
 uvicorn==0.34.0

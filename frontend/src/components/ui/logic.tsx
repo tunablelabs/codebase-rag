@@ -31,7 +31,9 @@ export default function ChatPage() {
   const [isFilesVisible, setIsFilesVisible] = useState(false);
   const [isStatsVisible, setIsStatsVisible] = useState(false);
   const { sessions, currentSessionId, email, createSession, setSessions, currentSession, addMessageToSession, updateSessionMessage } = useSessionContext();
-  
+
+  const [limitReachedMessage, setLimitReachedMessage] = useState<string | null>(null);
+
   const handlestatsUpload = useCallback((stats: Stats) => {
     console.log('handle stats upload invoked', stats)
     setIsStatsVisible(true);
@@ -288,6 +290,8 @@ export default function ChatPage() {
 const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
   e.preventDefault();
   setIsPending(true);
+  setLimitReachedMessage(null); // Clear any prior message
+
   const formData = new FormData(e.currentTarget);
   const content = formData.get('message') as string;
   
@@ -334,8 +338,8 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     };
     
     // Create WebSocket connection
-    //const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    const BASE_URL = 'https://codebase-rag-production.up.railway.app'
+    const BASE_URL = process.env.NEXT_PUBLIC_URL || 'http://localhost:8000';
+    // const BASE_URL = 'https://codebase-rag-production.up.railway.app'
     const wsProtocol = BASE_URL.startsWith('https') ? 'wss' : 'ws';
     const wsUrl = BASE_URL.replace(/^http(s)?:\/\//, '');
     const ws = new WebSocket(`${wsProtocol}://${wsUrl}/api/codex/query/stream`);
@@ -366,6 +370,22 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         ws.close();
         return;
       }
+       if (data.limit_reached) {
+          console.warn("User has reached daily limit:", data.message);
+
+          // Show the message in UI
+          setLimitReachedMessage(data.message || "You have reached your daily limit.");
+          setIsPending(false);
+
+          // Optionally update the last bot message or create a new one
+          updateSessionMessage(currentSessionId, botMessageId, {
+            type: "bot",
+            text: data.message || "You have reached your daily limit.",
+          });
+
+          ws.close();
+          return;
+        }
       
       // Handle partial responses
       if (data.partial_response) {
@@ -429,6 +449,12 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         onFileUpload={handleFileUpload}
         handlestatsUpload={handlestatsUpload}
       />
+      {/* 3) Example UI banner if user has exceeded daily limit */}
+      {limitReachedMessage && (
+        <div className="absolute top-0 left-0 right-0 bg-red-500 text-white p-4 text-center">
+          {limitReachedMessage}
+        </div>
+      )}
       <MainContent
         currentSession={currentSession || null}
         isFilesVisible={isFilesVisible}
