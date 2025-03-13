@@ -7,6 +7,7 @@ __pycache__/
 logs/
 node_modules/
 project_repos/
+tree_build/
 local_user_database.db
 .npmrc
 package-lock.json
