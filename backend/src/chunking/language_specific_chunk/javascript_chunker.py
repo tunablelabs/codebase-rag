@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional, Set
 from tree_sitter import Node
 import logging
+from config.logging_config import info, warning, debug, error
 
 from git_repo_parser.base_types import CodeEntity
 from ..strategies import BaseChunkingStrategy, ChunkInfo
@@ -10,7 +11,12 @@ class JSImportStrategy(BaseChunkingStrategy):
     
     MAX_IMPORTS_PER_CHUNK = 10  # Maximum imports per chunk
     
+    def __init__(self):
+        super().__init__()
+        info("JSImportStrategy initialized")
+    
     def chunk(self, code: str, file_path: str) -> List[ChunkInfo]:
+        info(f"Chunking JavaScript imports for file: {file_path}")
         imports = []
         current_imports = []
         start_line = 1
@@ -51,6 +57,7 @@ class JSImportStrategy(BaseChunkingStrategy):
                 current_imports, file_path, start_line, len(code.splitlines())
             ))
         
+        info(f"Created {len(imports)} JavaScript import chunks")
         return imports
     
     def _create_import_chunk(self, imports: List[str], file_path: str, 
@@ -113,23 +120,31 @@ class JavaScriptChunker:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.import_strategy = JSImportStrategy()
         self.file_path = None
+        info("JavaScriptChunker initialized")
     
     def create_chunks_from_entities(self, entities: List[CodeEntity], file_path: str) -> List[ChunkInfo]:
         """Create optimized chunks from JavaScript entities"""
         try:
+            info(f"Creating chunks from {len(entities)} JavaScript entities for file: {file_path}")
             self.file_path = file_path
             
             # Read file content
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except Exception as e:
+                error(f"Error reading JavaScript file {file_path}: {e}")
+                raise
             
             chunks = []
             
             # Handle imports first
+            info("Processing JavaScript imports")
             import_chunks = self.import_strategy.chunk(content, file_path)
             chunks.extend(import_chunks)
             
             # Group and process entities
+            info("Grouping and processing JavaScript entities")
             sorted_entities = sorted(entities, key=lambda e: e.location.start_line)
             entity_groups = self._group_entities(sorted_entities)
             
@@ -139,14 +154,19 @@ class JavaScriptChunker:
                 chunks.extend(new_chunks)
             
             # Add dependencies
-            tree = self.parser.parse(bytes(content, 'utf-8'))
-            if tree:
-                self._enrich_chunks(chunks, tree.root_node, content)
+            info("Adding dependencies between chunks")
+            try:
+                tree = self.parser.parse(bytes(content, 'utf-8'))
+                if tree:
+                    self._enrich_chunks(chunks, tree.root_node, content)
+            except Exception as e:
+                warning(f"Could not add dependencies: {e}")
             
+            info(f"Created total of {len(chunks)} chunks for {file_path}")
             return chunks
             
         except Exception as e:
-            self.logger.error(f"Error creating JavaScript chunks: {e}")
+            error(f"Error creating JavaScript chunks: {e}")
             return []
 
     def _process_entity_group(self, group: List[CodeEntity]) -> List[ChunkInfo]:
@@ -156,9 +176,11 @@ class JavaScriptChunker:
         
         if total_lines > self.LARGE_ENTITY_THRESHOLD and len(group) == 1:
             # Single large entity - split it
+            info(f"Splitting large entity of {total_lines} lines")
             chunks.extend(self._split_large_entity(group[0]))
         elif total_lines > self.LARGE_ENTITY_THRESHOLD:
             # Multiple entities forming large group - split at logical boundaries
+            info(f"Splitting large group of {len(group)} entities with {total_lines} lines")
             chunks.extend(self._split_large_group(group))
         else:
             # Normal sized group - create single chunk
@@ -170,6 +192,7 @@ class JavaScriptChunker:
 
     def _split_large_entity(self, entity: CodeEntity) -> List[ChunkInfo]:
         """Split a large entity into multiple smaller chunks"""
+        info(f"Splitting large {entity.type} entity: {entity.name}")
         chunks = []
         lines = entity.content.splitlines()
         current_chunk_lines = []
@@ -214,10 +237,12 @@ class JavaScriptChunker:
                 current_start_line += len(current_chunk_lines)
                 chunk_number += 1
         
+        info(f"Split large entity into {len(chunks)} chunks")
         return chunks
 
     def _split_large_group(self, group: List[CodeEntity]) -> List[ChunkInfo]:
         """Split a large group of entities into logical chunks"""
+        info(f"Splitting large group of {len(group)} entities")
         chunks = []
         current_group = []
         current_lines = 0
@@ -253,10 +278,12 @@ class JavaScriptChunker:
             if chunk:
                 chunks.append(chunk)
         
+        info(f"Split large group into {len(chunks)} chunks")
         return chunks
 
     def _group_entities(self, entities: List[CodeEntity]) -> List[List[CodeEntity]]:
         """Group related entities based on type and proximity"""
+        info(f"Grouping {len(entities)} entities by relation")
         if not entities:
             return []
             
@@ -300,7 +327,7 @@ class JavaScriptChunker:
             return False
             
         except Exception as e:
-            self.logger.warning(f"Error checking entity merge: {e}")
+            warning(f"Error checking entity merge: {e}")
             return False
 
     def _get_group_size(self, entities: List[CodeEntity]) -> int:
@@ -348,7 +375,7 @@ class JavaScriptChunker:
             )
             
         except Exception as e:
-            self.logger.warning(f"Error creating chunk from group: {e}")
+            warning(f"Error creating chunk from group: {e}")
             return None
 
     def _determine_chunk_type(self, entities: List[CodeEntity]) -> str:
@@ -405,12 +432,13 @@ class JavaScriptChunker:
             return deps
             
         except Exception as e:
-            self.logger.warning(f"Error extracting dependencies: {e}")
+            warning(f"Error extracting dependencies: {e}")
             return deps
     
     def _enrich_chunks(self, chunks: List[ChunkInfo], root_node: Node, code: str) -> None:
         """Add dependencies and relationships to chunks"""
         try:
+            info("Enriching chunks with dependencies")
             # Build name to chunk mapping
             name_to_chunk = {}
             for chunk in chunks:
@@ -425,7 +453,7 @@ class JavaScriptChunker:
                     chunk.dependencies.update(deps)
                     
         except Exception as e:
-            self.logger.warning(f"Error enriching chunks: {e}")
+            warning(f"Error enriching chunks: {e}")
             
     def get_chunk_summary(self, chunk: ChunkInfo) -> Dict:
         """Get a summary of a chunk's contents"""

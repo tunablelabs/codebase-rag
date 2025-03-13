@@ -8,14 +8,13 @@ from pydantic import BaseModel
 import os
 import json
 from datetime import datetime
-import logging
+# Import only the direct logging functions, remove all logger initialization
+from config.logging_config import info, error, debug, warning
 
 from .providers import BaseLLMProvider, OpenAIProvider, AzureOpenAIProvider, ClaudeProvider
 from .dynamo_db_crud import DynamoDBManager
 from config.config import OPENAI_API_KEY
 
-
-logger = logging.getLogger(__name__)
 
 # Message Classes for OpenAI Chat Format
 class BaseMessage:
@@ -153,7 +152,8 @@ class ChatLLM:
             # Search in Qdrant using the embedded vector
             search_result = self.qdrant_client.search(**search_params)
             num_retrieved_chunks = len(search_result)
-            logger.info(f"Number of retrieved chunks: {num_retrieved_chunks}")
+            # Use direct info function instead of logger.info
+            info(f"Number of retrieved chunks: {num_retrieved_chunks}")
             
             source_attributes = []
             contexts = []
@@ -319,7 +319,8 @@ class ChatLLM:
                 prompt_tokens=response_data["usage"]["prompt_tokens"],
             )
         except Exception as e:
-            logger.error(f"LLM request failed: {str(e)}")
+            # Use direct error function instead of logger.error
+            error(f"LLM request failed: {str(e)}")
             raise Exception(f"LLM request failed: {str(e)}")
 
     async def stream(
@@ -385,7 +386,8 @@ class ChatLLM:
             yield contexts, LLMInterface(content=f"\nSource files: {', '.join(source_attributes)}")
                         
         except Exception as e:
-            logger.error(f"LLM streaming request failed: {str(e)}")
+            # Use direct error function instead of logger.error
+            error(f"LLM streaming request failed: {str(e)}")
             raise Exception(f"LLM streaming request failed: {str(e)}")
         
     def get_collection_info(self) -> Optional[dict]:
@@ -393,5 +395,6 @@ class ChatLLM:
         try:
             return self.qdrant_client.get_collection(self.collection_name)
         except Exception as e:
-            logger.error(f"Error getting collection info: {str(e)}")
+            # Use direct error function instead of logger.error
+            error(f"Error getting collection info: {str(e)}")
             return None

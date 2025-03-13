@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional, Set
 from tree_sitter import Node
 import logging
+from config.logging_config import info, warning, debug, error
 
 from git_repo_parser.base_types import CodeEntity
 from ..strategies import (
@@ -16,7 +17,12 @@ class PythonImportStrategy(ImportChunkingStrategy):
     
     MAX_IMPORTS_PER_CHUNK = 10
     
+    def __init__(self):
+        super().__init__()
+        info("PythonImportStrategy initialized")
+    
     def chunk(self, code: str, file_path: str) -> List[ChunkInfo]:
+        info(f"Chunking Python imports for file: {file_path}")
         chunks = []
         current_imports = []
         start_line = 1
@@ -56,6 +62,7 @@ class PythonImportStrategy(ImportChunkingStrategy):
                 current_imports, file_path, start_line, len(code.splitlines())
             ))
         
+        info(f"Created {len(chunks)} Python import chunks")
         return chunks
     
     def _create_import_chunk(self, imports: List[str], file_path: str, 
@@ -124,46 +131,64 @@ class PythonChunker:
         self.api_strategy = ApiChunkingStrategy()
         self.logical_strategy = LogicalChunkingStrategy()
         self.file_path = None
+        info("PythonChunker initialized with strategies")
     
     def create_chunks_from_entities(self, entities: List[CodeEntity], file_path: str) -> List[ChunkInfo]:
         """Create optimized chunks from Python entities"""
         try:
+            info(f"Creating chunks from {len(entities)} Python entities for file: {file_path}")
             self.file_path = file_path
             
             # Read file content
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            info(f"Reading Python file: {file_path}")
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except Exception as e:
+                error(f"Error reading Python file {file_path}: {e}")
+                raise
             
             chunks = []
             
             # Handle imports first
+            info("Processing Python imports")
             import_chunks = self.import_strategy.chunk(content, file_path)
             chunks.extend(import_chunks)
             
             # Group and process entities
+            info("Grouping and sorting Python entities")
             sorted_entities = sorted(entities, key=lambda e: e.location.start_line)
             entity_groups = self._group_entities(sorted_entities)
+            info(f"Created {len(entity_groups)} entity groups")
             
             # Process each group
+            info("Processing entity groups")
             for group in entity_groups:
                 new_chunks = self._process_entity_group(group)
                 chunks.extend(new_chunks)
             
             # Process API endpoints if any
             api_entities = [e for e in entities if self._is_api_entity(e)]
-            for entity in api_entities:
-                api_chunks = self.api_strategy.chunk(entity.content, file_path)
-                chunks.extend(api_chunks)
+            if api_entities:
+                info(f"Processing {len(api_entities)} API entities")
+                for entity in api_entities:
+                    api_chunks = self.api_strategy.chunk(entity.content, file_path)
+                    chunks.extend(api_chunks)
             
             # Add dependencies
-            tree = self.parser.parse(bytes(content, 'utf-8'))
-            if tree:
-                self._enrich_chunks(chunks, tree.root_node, content)
+            info("Adding dependencies between chunks")
+            try:
+                tree = self.parser.parse(bytes(content, 'utf-8'))
+                if tree:
+                    self._enrich_chunks(chunks, tree.root_node, content)
+            except Exception as e:
+                warning(f"Could not add dependencies: {e}")
             
+            info(f"Created total of {len(chunks)} chunks for {file_path}")
             return chunks
             
         except Exception as e:
-            self.logger.error(f"Error creating Python chunks: {e}")
+            error(f"Error creating Python chunks: {e}")
             return []
 
     def _is_api_entity(self, entity: CodeEntity) -> bool:
@@ -178,13 +203,16 @@ class PythonChunker:
         
         if total_lines > self.LARGE_ENTITY_THRESHOLD and len(group) == 1:
             # Single large entity - split it
+            info(f"Splitting large entity of {total_lines} lines")
             chunks.extend(self._split_large_entity(group[0]))
         elif total_lines > self.LARGE_ENTITY_THRESHOLD:
             # Multiple entities forming large group - split at logical boundaries
+            info(f"Splitting large group of {len(group)} entities with {total_lines} lines")
             chunks.extend(self._split_large_group(group))
         else:
             # Normal sized group - process with appropriate strategy
             if self._is_api_entity(group[0]):
+                info(f"Processing API entity: {group[0].name}")
                 chunks.extend(self.api_strategy.chunk(group[0].content, self.file_path))
             else:
                 chunk = self._create_chunk_from_group(group)
@@ -195,6 +223,7 @@ class PythonChunker:
 
     def _split_large_entity(self, entity: CodeEntity) -> List[ChunkInfo]:
         """Split a large entity into multiple smaller chunks"""
+        info(f"Splitting large {entity.type} entity: {entity.name}")
         chunks = []
         lines = entity.content.splitlines()
         current_chunk_lines = []
@@ -253,6 +282,7 @@ class PythonChunker:
                 chunk_number += 1
                 current_indent = None
         
+        info(f"Split large entity into {len(chunks)} chunks")
         return chunks
 
     def _extract_docstring(self, lines: List[str]) -> Optional[str]:
@@ -266,11 +296,13 @@ class PythonChunker:
                     if child and child.type in ('string', 'string_content'):
                         return child.text.decode('utf-8').strip('"\' \n\t')
             return None
-        except Exception:
+        except Exception as e:
+            warning(f"Error extracting docstring: {e}")
             return None
 
     def _split_large_group(self, group: List[CodeEntity]) -> List[ChunkInfo]:
         """Split a large group of entities into logical chunks"""
+        info(f"Splitting large group of {len(group)} entities")
         chunks = []
         current_group = []
         current_lines = 0
@@ -306,10 +338,12 @@ class PythonChunker:
             if chunk:
                 chunks.append(chunk)
         
+        info(f"Split large group into {len(chunks)} chunks")
         return chunks
 
     def _group_entities(self, entities: List[CodeEntity]) -> List[List[CodeEntity]]:
         """Group related entities based on type and proximity"""
+        info(f"Grouping {len(entities)} entities by relation")
         if not entities:
             return []
             
@@ -366,7 +400,7 @@ class PythonChunker:
             return False
             
         except Exception as e:
-            self.logger.warning(f"Error checking entity merge: {e}")
+            warning(f"Error checking entity merge: {e}")
             return False
 
     def _get_group_size(self, entities: List[CodeEntity]) -> int:
@@ -411,7 +445,7 @@ class PythonChunker:
             )
             
         except Exception as e:
-            self.logger.warning(f"Error creating chunk from group: {e}")
+            warning(f"Error creating chunk from group: {e}")
             return None
 
     def _determine_group_type(self, entities: List[CodeEntity]) -> str:
@@ -468,12 +502,13 @@ class PythonChunker:
             return deps
             
         except Exception as e:
-            self.logger.warning(f"Error extracting dependencies: {e}")
+            warning(f"Error extracting dependencies: {e}")
             return deps
 
     def _enrich_chunks(self, chunks: List[ChunkInfo], root_node: Node, code: str) -> None:
         """Add dependencies and relationships to chunks"""
         try:
+            info("Enriching chunks with dependencies")
             # Build name to chunk mapping
             name_to_chunk = {}
             for chunk in chunks:
@@ -486,9 +521,11 @@ class PythonChunker:
                 if chunk.type != 'import':
                     deps = self._extract_dependencies(chunk.content, name_to_chunk)
                     chunk.dependencies.update(deps)
+            
+            info("Chunks enriched successfully")
                     
         except Exception as e:
-            self.logger.warning(f"Error enriching chunks: {e}")
+            warning(f"Error enriching chunks: {e}")
 
     def get_chunk_summary(self, chunk: ChunkInfo) -> Dict:
         """Get a summary of a chunk's contents"""
