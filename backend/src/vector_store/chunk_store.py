@@ -108,7 +108,6 @@ class ChunkStoreHandler:
             token_count = self._count_tokens(text)
 
             if token_count > self.MAX_TOKENS:
-                warning(f"Text exceeds max tokens ({token_count}), splitting it")
                 chunks = self._split_text(text)
                 # Process split chunks immediately
                 for chunk in chunks:
@@ -152,7 +151,6 @@ class ChunkStoreHandler:
             for attempt in range(self.MAX_RETRIES):
                 try:
                     if attempt > 0:
-                        warning(f"Retry {attempt+1}/{self.MAX_RETRIES} for embeddings batch")
                         time.sleep(attempt * 2)  # Exponential backoff
                     response = self.openai_client.embeddings.create(
                         model="text-embedding-ada-002",
@@ -246,7 +244,6 @@ class ChunkStoreHandler:
                                 collection_name=self.collection_name,
                                 points=batch
                             )
-                            info(f"Stored batch {batch_num}/{total_batches} with {len(batch)} points")
                             break
                         except Exception as e:
                             if attempt == self.MAX_RETRIES - 1:
