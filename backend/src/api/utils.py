@@ -2,6 +2,7 @@ from datetime import datetime
 import json
 import shutil
 from typing import Any, List, Dict
+import uuid
 from fastapi import HTTPException, logger
 from git import Repo
 from pydantic import BaseModel
@@ -70,10 +71,11 @@ class GitCloneService:
             user_name = user_id.replace('@', '_').replace('.', '_')    
             user_folder_path = os.path.join(self.base_path, user_name)
             os.makedirs(user_folder_path, exist_ok=True)
-            session_number = len(os.listdir(user_folder_path))
+            # Generate a 5-digit unique identifier from a UUID
+            session_number = str(uuid.uuid4().int)[:5]
            
             repo_name = repo_url.split('/')[-1].replace('.git', '')
-            repo_name = f"{session_number+1}_{repo_name}"
+            repo_name = f"{session_number}_{repo_name}"
             repo_path = os.path.join(user_folder_path, repo_name)
             
             Repo.clone_from(repo_url, repo_path)
@@ -90,10 +92,11 @@ class GitCloneService:
             user_name = user_id.replace('@', '_').replace('.', '_')            
             user_folder_path = os.path.join(self.base_path, user_name)
             os.makedirs(user_folder_path, exist_ok=True)
-            session_number = len(os.listdir(user_folder_path))
+            # Generate a 5-digit unique identifier from a UUID
+            session_number = str(uuid.uuid4().int)[:5]
             
             folder_name = input_files[0].filename.split('/')[0]
-            folder_name = f"{session_number+1}_{folder_name}"
+            folder_name = f"{session_number}_{folder_name}"
             folder_path = os.path.join(user_folder_path, folder_name)
             
             os.makedirs(folder_path, exist_ok=True)
