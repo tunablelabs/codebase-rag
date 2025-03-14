@@ -12,7 +12,7 @@ interface StatsProps {
 const ShowStats: React.FC<StatsProps> = ({ stats }) => {
   return (
     <div className="space-y-4 bg-base-100 dark:bg-base-200/10 p-4 rounded-lg 
-      shadow-lg backdrop-blur-sm border border-base-200/50 dark:border-base-600">
+      shadow-lg backdrop-blur-sm border border-base-200/50 dark:border-base-600 mt-10">
       <div>
         <h3 className="font-medium text-base-content">
           Repository Statistics
