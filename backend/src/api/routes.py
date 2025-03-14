@@ -414,3 +414,26 @@ async def query_code_stream_ws(
             await websocket.close()
         except:
             pass
+        
+# @router.post("/reindex")
+ # async def reindex_vectoredb(repo: FileID):
+ #     chat_history_path = get_chat_history_class.base_path
+ #     file_name = os.path.join(chat_history_path, f"{repo.file_id}.json")
+ #     project_path, _ = get_project_path(file_name)
+ #     if not os.path.exists(project_path):
+ #         raise HTTPException(status_code=400, detail="project Not Avilable")
+ #     chunkhandler = ChunkStoreHandler(project_path)
+ #     collection_name = chunkhandler.collection_name
+ #     client = chunkhandler.client
+ #     try:
+ #         # Delete the collection
+ #         if collection_name:
+ #             client.delete_collection(collection_name=collection_name)
+ #         try:
+ #             result = repo_service.process_repository(project_path)
+ #             return result
+ #         except Exception as e:
+ #             raise HTTPException(status_code=500, detail=str(e))
+ 
+ #     except Exception as e:
+ #         raise HTTPException(status_code=500, detail=f"Failed to delete collection: {str(e)}")
