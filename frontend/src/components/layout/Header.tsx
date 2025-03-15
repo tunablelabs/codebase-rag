@@ -47,28 +47,25 @@ export default function Header({ user }: { user: User | null }) {
                 text-base-content/70 hover:text-primary transition-colors relative"
               href="/"
             >
-              <span className="relative">
-                Ask a Questions
-                <span className="absolute -bottom-0.5 left-0 h-0.5 w-0 bg-primary 
-                  transition-all duration-300 group-hover:w-full" />
-              </span>
+           
             </NavLink>
 
             <a
-              href="https://github.com"
-              className="group flex items-center px-2 py-1 text-sm font-medium 
-                text-base-content/70 hover:text-primary transition-colors relative"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span className="flex items-center gap-1 relative">
-                <GitHubLogoIcon className="w-4 h-4" />
-                <span>GitHub</span>
-                <ExternalLink className="w-3 h-3 opacity-0 -translate-y-1 
-                  group-hover:opacity-100 group-hover:translate-y-0 
-                  transition-all duration-300" />
-              </span>
-            </a>
+            href="https://tunablelabs.ai/"
+                 className="group flex items-center px-3 py-2 text-lg font-medium 
+                   rounded-md hover:bg-base-200/50 
+                   transition-all duration-300 relative"
+                 target="_blank"
+                 rel="noopener noreferrer"
+               >
+                 <span className="flex items-center gap-1 relative">
+                   <span className="bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">Tunable</span>
+                   <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Labs</span>
+                   <ExternalLink className="w-3 h-3 text-base-content/50 group-hover:text-primary 
+                     transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 
+                     transition-all duration-300" />
+                 </span>
+               </a>
 
             <ThemeToggle />
 

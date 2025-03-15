@@ -4,6 +4,7 @@ import CodeBlock  from './CodeBlock';
 import { FileListComponent } from "../file/FileList";
 import ShowStats from "../file/ShowStats";
 import { ChatOptions, Session } from "@/types";
+import FormattedMarkdown  from "./FormattedMarkdown"
 import { 
   Settings, 
   Send, 
@@ -67,11 +68,42 @@ function MainContent({
   const [isMetricsExpanded, setIsMetricsExpanded] = useState<{[key: string]: boolean}>({});
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [message, setMessage] = useState("");
-  const suggestedQuestions = [
-    "Onboard me to repo" , 
+ 
+  const [suggestedQuestions, setSuggestedQuestions] = useState([
+    "Onboard me to repo",
     "Summarize key concepts in repo",
     "What tech stack is used in this repo?"
-  ];
+  ]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+    // Function to fetch follow-up questions
+    const fetchFollowUpQuestions = async (question: string) => {
+      if (!question) return;
+      setIsLoadingSuggestions(true);
+      try {
+        const response = await fetch('https://codebase-rag-production.up.railway.app/api/codex/follow-up-questions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'accept': 'application/json'
+          },
+          body: JSON.stringify({ question })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('suggested questions',)
+          // Clean up the questions (remove the numbers at the beginning)
+          const cleanQuestions = data.follow_up_questions.map((q: string) => 
+            q.replace(/^\d+\.\s+/, '')
+          );
+          setSuggestedQuestions(cleanQuestions);
+        }
+      } catch (error) {
+        console.error('Error fetching follow-up questions:', error);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    };
 
   useEffect(() => {
     if (currentSession?.messages) {
@@ -183,53 +215,89 @@ function MainContent({
   
     return blocks;
   };
+
   const renderMetrics = (metric: any, index: number) => {
     if (!metric) return null;
-
+  
+    const isLastMessage = currentSession?.messages && 
+      index === currentSession.messages.length - 1 && 
+      currentSession.messages[index].type === "bot";
+  
     return (
-      <div className="mt-2 bg-base-200/40 dark:bg-base-300/30 rounded-lg p-3
-        border border-sky-500/20 dark:border-sky-500/20">
-        <button
-          onClick={() => setIsMetricsExpanded(prev => ({...prev, [index]: !prev[index]}))}
-          className="w-full flex items-center justify-between text-sm text-base-content/70 hover:text-base-content"
-        >
-          <div className="flex items-center gap-2">
-            <BarChart2 className="w-4 h-4" />
-            <span style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-              Response Quality Metrics
-            </span>
-          </div>
-          {isMetricsExpanded[index] ? (
-            <ChevronUp className="w-4 h-4" />
-          ) : (
-            <ChevronDown className="w-4 h-4" />
-          )}
-        </button>
-
-        <div className={`
-          grid grid-cols-2 gap-3 transition-all duration-300
-          ${isMetricsExpanded[index] ? 'mt-3 opacity-100' : 'h-0 opacity-0 overflow-hidden'}
-        `}>
-          {Object.entries(metric).map(([key, value]: [string, any]) => (
-            <div key={key} className="space-y-1.5">
-              <div className="text-xs text-base-content/60">{key}</div>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-base-300 dark:bg-base-400 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-primary/80 transition-all duration-500 ease-out"
-                    style={{ width: `${value?.score * 100 || 0}%` }}
-                  />
-                </div>
-                <span className="text-xs font-mono text-base-content/80 tabular-nums">
-                  {value?.score?.toFixed(2) || "0.00"}
-                </span>
-              </div>
+      <div className="space-y-3">
+        <div className="mt-2 bg-base-200/40 dark:bg-base-300/30 rounded-lg p-3
+          border border-sky-500/20 dark:border-sky-500/20">
+          <button
+            onClick={() => setIsMetricsExpanded(prev => ({...prev, [index]: !prev[index]}))}
+            className="w-full flex items-center justify-between text-sm text-base-content/70 hover:text-base-content"
+          >
+            <div className="flex items-center gap-2">
+              <BarChart2 className="w-4 h-4" />
+              <span style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+                Response Quality Metrics
+              </span>
             </div>
-          ))}
+            {isMetricsExpanded[index] ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </button>
+  
+          <div className={`
+            grid grid-cols-2 gap-3 transition-all duration-300
+            ${isMetricsExpanded[index] ? 'mt-3 opacity-100' : 'h-0 opacity-0 overflow-hidden'}
+          `}>
+            {Object.entries(metric).map(([key, value]: [string, any]) => (
+              <div key={key} className="space-y-1.5">
+                <div className="text-xs text-base-content/60">{key}</div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-base-300 dark:bg-base-400 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary/80 transition-all duration-500 ease-out"
+                      style={{ width: `${value?.score * 100 || 0}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-mono text-base-content/80 tabular-nums">
+                    {value?.score?.toFixed(2) || "0.00"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+        
+        {/* Only show suggestions after the last bot message */}
+        {isLastMessage && message === "" && (
+          <div className="mt-3">
+            <div className="text-xs text-base-content/60 mb-2">Follow-up questions</div>
+            <div className="flex flex-wrap gap-2">
+              {isLoadingSuggestions ? (
+                <div className="flex items-center px-3 py-2 bg-base-100/90 dark:bg-base-200/80
+                  border border-sky-500/30 text-base-content/70 rounded-lg shadow-sm">
+                  <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                  <span className="text-sm">Loading suggestions...</span>
+                </div>
+              ) : (
+                suggestedQuestions.map((question, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setMessage(question)}
+                    className="px-4 py-2 text-sm font-medium bg-white/80 backdrop-blur-sm 
+                      border border-white/30 text-gray-800 rounded-lg shadow-sm 
+                      hover:bg-white/90 transition-all"
+                  >
+                    {question}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
+
   const renderMessageContent = (text: string) => {
     const blocks = detectCodeBlocks(text);
     
@@ -244,13 +312,13 @@ function MainContent({
           lineHeight: '1.5',
           whiteSpace: 'pre-wrap'
         }}>
-          <ReactMarkdown>{block.content}</ReactMarkdown>
+          <FormattedMarkdown content={block.content} />
         </pre>
       );
     });
   };
   const renderMessageBubble = (msg: any, index: number) => {
-    console.log(msg)
+    //console.log(msg)
     const isUser = msg.type === "user";
     const sourceFilesMatch = msg.text.match(/Source files:(.*?)(?=\n|$)/i);
     const messageText = sourceFilesMatch 
@@ -291,6 +359,13 @@ function MainContent({
         </div>
       </div>
     );
+  };
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    onSubmit(e);
+    fetchFollowUpQuestions(message);
+    setMessage("");
   };
 
   return (
@@ -350,20 +425,22 @@ function MainContent({
                   </div>
                 )}
               </div>
-              {message === "" && (
-              <div className="mb-2 flex flex-wrap gap-2">
+              { currentSession?.messages?.length === 0 && message === "" &&(
+              <div className="mb-2 flex flex-wrap gap-2 justify-center">
                 {suggestedQuestions.map((question, index) => (
                   <button
                     key={index}
                     onClick={() => setMessage(question)}
-                    className="px-3 py-1 text-sm bg-sky-500/20 text-sky-700 
-                              hover:bg-sky-500/30 rounded-lg transition-all"
+                    className="px-4 py-2 text-sm font-medium bg-white/80 backdrop-blur-sm 
+                            border border-white/30 text-gray-800 rounded-lg shadow-sm 
+                            hover:bg-white/90 transition-all"
                   >
                     {question}
                   </button>
                 ))}
               </div>
             )}
+               
             </div>
 
             {showScrollButton && (
@@ -388,7 +465,7 @@ function MainContent({
 
           <div className="relative">
          
-            <form onSubmit={onSubmit} className="relative">
+            <form onSubmit={handleSubmit} className="relative">
               <div className={`
                 absolute bottom-full left-0 right-0 mb-2
                  bg-base-100/95 dark:bg-base-200/95

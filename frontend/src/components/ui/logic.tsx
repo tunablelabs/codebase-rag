@@ -12,7 +12,7 @@ export default function ChatPage() {
   const [chatOptions, setChatOptions] = useState<ChatOptions>({
     githubUrl: "",
     systemPrompt: "",
-    astFlag: false,
+    astFlag: true,
     forceReindex: false,
     sessionId: undefined,
     llmEvaluator:false 
@@ -82,209 +82,6 @@ export default function ChatPage() {
 
     updateStatsForSession();
   }, [currentSessionId, handlestatsUpload]);
-
-  // const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-  //   e.preventDefault();
-  //   setIsPending(true);
-  //   const formData = new FormData(e.currentTarget);
-  //   const content = formData.get('message') as string;
-
-  //   const astFlagValue = chatOptions.astFlag ? "True" : "False";
-  //   const llmEvaluatorValue = chatOptions.llmEvaluator ? "True" : "False";
-  //   const prompt = chatOptions.systemPrompt;
-  //   console.log('prompt',prompt)
-  //   console.log(content,currentSessionId,astFlagValue,llmEvaluatorValue);
-  //   if (!currentSessionId) {
-  //     alert("Please create a new session first.");
-  //     setIsPending(false);
-  //     return;
-  //   }
-
-  //   if (!content.trim()) {
-  //     return;
-  //   }
-  //   addMessageToSession(currentSessionId, {
-  //     type: "user",
-  //     text: content
-  //   });
-
-
-  //   try {
-  //     const queryRequest: QueryRequest = {
-  //       user_id: email,
-  //       session_id: currentSessionId,
-  //       use_llm: llmEvaluatorValue,
-  //       ast_flag: astFlagValue,
-  //       query: content,
-  //       sys_prompt: prompt,
-  //       limit: 5, // You can modify this limit as needed
-  //     };
-
-  //     const response = await fetch(`https://localhost:8000/api/codex/query/stream`, {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(queryRequest),
-  //     });
-
-  //     if (!response.body) throw new Error("No response body received");
-
-  //     const reader = response.body.getReader();
-  //     const decoder = new TextDecoder();
-  //     let botMessage = "";
-
-  //     while (true) {
-  //       const { done, value } = await reader.read();
-  //       if (done) break;
-  //       botMessage += decoder.decode(value, { stream: true });
-
-  //       addMessageToSession(currentSessionId, {
-  //         type: "bot",
-  //         text: botMessage,
-  //       });
-  //     }
-  //     setIsPending(false);
-  //     setIsFilesVisible(true);
-
-  //     /*const response = await api.queryRepository(queryRequest);
-  //     console.log(response);
-  //     setIsPending(false);
-  //     setIsFilesVisible(true);
-
-  //     addMessageToSession(currentSessionId, {
-  //       type: "bot",
-  //       text: response.response,
-  //       metric: response.metric // ✅ Attach metrics
-  //     });*/
-  //   } catch (error) {
-  //     console.error("Failed to send message:", error);
-  //     setIsPending(false);
-  //   }
-  // };
-
-  // const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-  //   e.preventDefault();
-  //   setIsPending(true);
-  //   const formData = new FormData(e.currentTarget);
-  //   const content = formData.get('message') as string;
-
-  //   const astFlagValue = chatOptions.astFlag ? "True" : "False";
-  //   const llmEvaluatorValue = chatOptions.llmEvaluator ? "True" : "False";
-  //   const prompt = chatOptions.systemPrompt;
-
-  //   if (!currentSessionId) {
-  //     alert("Please create a new session first.");
-  //     setIsPending(false);
-  //     return;
-  //   }
-
-  //   if (!content.trim()) {
-  //     return;
-  //   }
-
-  //   // Add user message to the session
-  //   addMessageToSession(currentSessionId, {
-  //     type: "user",
-  //     text: content
-  //   });
-
-  //   // Create a placeholder for the bot response
-  //   addMessageToSession(currentSessionId, {
-  //     type: "bot",
-  //     text: "",
-  //   });
-
-  //   try {
-  //     // Prepare the query request
-  //     const queryRequest: QueryRequest = {
-  //       user_id: email,
-  //       session_id: currentSessionId,
-  //       use_llm: llmEvaluatorValue,
-  //       ast_flag: astFlagValue,
-  //       query: content,
-  //       sys_prompt: prompt,
-  //       limit: 5,
-  //     };
-
-  //     // Create WebSocket connection
-  //     const ws = new WebSocket(`ws://localhost:8000/api/codex/query/stream`);
-
-  //     // Initialize bot message
-  //     let botMessage = "";
-  //     // Define metrics interface using QueryMetrics from types
-  //     let currentMetrics: undefined = undefined;
-
-  //     // Handle WebSocket open event - send the query
-  //     ws.onopen = () => {
-  //       console.log("WebSocket connection established");
-  //       ws.send(JSON.stringify(queryRequest));
-  //     };
-
-  //     // Handle incoming messages
-  //     ws.onmessage = (event) => {
-  //       const data = JSON.parse(event.data);
-
-  //       // Check for errors
-  //       if (data.error) {
-  //         console.error("WebSocket error:", data.error);
-  //         addMessageToSession(currentSessionId, {
-  //           type: "bot",
-  //           text: `Error: ${data.error}`,
-  //         });
-  //         ws.close();
-  //         return;
-  //       }
-
-  //       // Handle partial responses
-  //       if (data.partial_response) {
-  //         botMessage += data.partial_response;
-  //         addMessageToSession(currentSessionId, {
-  //           type: "bot",
-  //           text: botMessage,
-  //           metric: currentMetrics,
-  //         });
-  //       }
-
-  //       // Save metrics if provided
-  //       if (data.metric) {
-  //         currentMetrics = data.metric;
-  //         addMessageToSession(currentSessionId, {
-  //           type: "bot",
-  //           text: botMessage,
-  //           metric: currentMetrics,
-  //         });
-  //       }
-
-  //       // If streaming is complete, close the connection
-  //       if (data.complete) {
-  //         ws.close();
-  //       }
-  //     };
-
-  //     // Handle WebSocket errors
-  //     ws.onerror = (error) => {
-  //       console.error("WebSocket error:", error);
-  //       addMessageToSession(currentSessionId, {
-  //         type: "bot",
-  //         text: botMessage + "\n\nConnection error occurred.",
-  //         metric: currentMetrics,
-  //       });
-  //       setIsPending(false);
-  //     };
-
-  //     // Handle WebSocket close
-  //     ws.onclose = () => {
-  //       console.log("WebSocket connection closed");
-  //       setIsPending(false);
-  //       setIsFilesVisible(true);
-  //     };
-
-  //   } catch (error) {
-  //     console.error("Failed to send message:", error);
-  //     setIsPending(false);
-  //   }
-  // };
-
-//  Claude 3.7 code here
 
 const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
   e.preventDefault();
@@ -388,11 +185,18 @@ const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
 
       // Handle partial responses
       if (data.partial_response) {
-        botMessage += data.partial_response;
+
+        const normalizedResponse = data.partial_response
+          .replace(/\r\n/g, "\n") // Normalize newlines
+          .replace(/\n{3,}/g, "\n\n") // Replace 3+ newlines with exactly 2
+          
+
+        botMessage += normalizedResponse;
+        // botMessage += data.partial_response;
         // Update the existing message instead of adding a new one
         updateSessionMessage(currentSessionId, botMessageId, {
           type: "bot",
-          text: botMessage,
+          text: botMessage.trim(),
           metric: currentMetrics,
         });
       }
