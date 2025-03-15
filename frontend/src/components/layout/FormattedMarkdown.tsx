@@ -19,6 +19,7 @@ const preprocessMarkdown = (content: string) => {
 const FormattedMarkdown: React.FC<FormattedMarkdownProps> = ({ content }) => {
   const processedContent = preprocessMarkdown(content);
   //console.log(processedContent, 'processedContent');
+  
   return (
     <div className="markdown-content">
       <style jsx>{`
