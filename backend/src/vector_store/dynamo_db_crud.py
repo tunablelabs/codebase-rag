@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional
 import uuid
 from datetime import datetime
 from config.config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION
+from config.logging_config import info, warning, debug, error
 
 
 class DynamoDBManager:
@@ -23,13 +24,14 @@ class DynamoDBManager:
         Initialize connection to AWS DynamoDB.
         Uses AWS credentials from environment variables.
         """
+        info("Initializing DynamoDBManager")
         # Create session with credentials
         self.session = aioboto3.Session(
             aws_access_key_id=AWS_ACCESS_KEY_ID,
             aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
             region_name=AWS_DEFAULT_REGION
         )
-
+        info("DynamoDB session created")
         # Local Setup
         """
         Initialize connection to local DynamoDB instance.
@@ -47,12 +49,14 @@ class DynamoDBManager:
         """Helper method to get table resource, creating it only once"""
         if DynamoDBManager._resource is None:
             # Create the resource only once
+            info("Creating new DynamoDB resource connection")
             DynamoDBManager._resource = await self.session.resource('dynamodb').__aenter__()
             DynamoDBManager._table = await DynamoDBManager._resource.Table('codebase')
         return DynamoDBManager._table
 
     async def create_user(self, user_id: str) -> Dict:
         """Create a new user in the database if they don't already exist."""
+        info(f"Creating user with ID: {user_id}")
         try:
             table = await self.get_table()
             # First check if user exists
@@ -64,6 +68,7 @@ class DynamoDBManager:
             )
             # If user exists, return without creating
             if 'Item' in response:
+                info(f"User {user_id} already exists")
                 return {'success': True, 'user_id': user_id}
 
             user_name = user_id.replace('@', '_').replace('.', '_')
@@ -74,15 +79,18 @@ class DynamoDBManager:
                 'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
 
+            info(f"Creating new user {user_id} in database")
             await table.put_item(Item=item)
+            info(f"User {user_id} created successfully")
             return {'success': True, 'user_id': user_id}
 
         except ClientError as e:
-            print(f"Error creating user: {e}")
+            error(f"Error creating user {user_id}: {e}")
             return {'success': False, 'error': str(e)}
 
     async def create_session(self, user_id: str, session_id: str) -> Dict:
         """Create a new session for a user."""
+        info(f"Creating session {session_id} for user {user_id}")
         # project_name = session_id.split('_', 1)[1]
         parts = session_id.split('_', 1)
         project_name = parts[1] if len(parts) > 1 else "Unknown"
@@ -95,15 +103,17 @@ class DynamoDBManager:
         try:
             table = await self.get_table()
             await table.put_item(Item=item)
+            info(f"Session {session_id} created successfully for user {user_id}")
 
             return {'success': True, 'session_id': session_id}
 
         except ClientError as e:
-            print(f"Error creating session: {e}")
+            error(f"Error creating session {session_id} for user {user_id}: {e}")
             return {'success': False, 'error': str(e)}
 
     async def get_user(self, user_id: str) -> Dict:
         """Retrieve a user's profile."""
+        info(f"Getting user profile for user {user_id}")
         try:
             table = await self.get_table()
             response = await table.get_item(
@@ -115,14 +125,17 @@ class DynamoDBManager:
             if 'Item' in response:
                 item = response['Item']
                 item['user_id'] = item['PK'].split('#')[1]
+                info(f"User {user_id} profile retrieved successfully")
                 return item
+            info(f"User {user_id} not found")
             return {}
         except ClientError as e:
-            print(f"Error getting user: {e}")
+            error(f"Error getting user {user_id}: {e}")
             return {}
 
     async def get_user_sessions(self, user_id: str) -> list:
         """Get all sessions for a specific user."""
+        info(f"Getting sessions for user {user_id}")
         session_result = []
         try:
             table = await self.get_table()
@@ -145,13 +158,15 @@ class DynamoDBManager:
                 session_data['session_id'] = (session['SK'].split('#')[1])
                 session_data['project_name'] = (session['project_name'])
                 session_result.append(session_data)
+            info(f"Retrieved {len(session_result)} sessions for user {user_id}")
             return session_result
 
         except ClientError as e:
-            print(f"Error getting sessions: {e}")
+            error(f"Error getting sessions for user {user_id}: {e}")
             return []
 
     async def rename_session(self, user_id: str, session_id: str, new_name: str):
+        info(f"Renaming session {session_id} to '{new_name}' for user {user_id}")
         try:
             table = await self.get_table()
             await table.update_item(
@@ -165,11 +180,14 @@ class DynamoDBManager:
                     ':timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
             )
+            info(f"Session {session_id} renamed successfully to '{new_name}'")
             return True
-        except:
+        except Exception as e:
+            error(f"Error renaming session {session_id} for user {user_id}: {e}")
             return False
 
     async def delete_session(self, user_id: str, session_id: str):
+        info(f"Deleting session {session_id} for user {user_id}")
         try:
             table = await self.get_table()
 
@@ -182,6 +200,7 @@ class DynamoDBManager:
             )
 
             # Delete all messages
+            message_count = len(messages.get('Items', []))
             for message in messages.get('Items', []):
                 await table.delete_item(
                     Key={
@@ -197,13 +216,16 @@ class DynamoDBManager:
                     'SK': f'SESSION#{session_id}'
                 }
             )
+            info(f"Session {session_id} and {message_count} messages deleted successfully")
             return True
 
-        except:
+        except Exception as e:
+            error(f"Error deleting session {session_id}: {e}")
             return False
 
     async def get_session_messages(self, user_id: str, session_id: str) -> list:
         """Get all messages in a specific session."""
+        info(f"Getting messages for session {session_id}, user {user_id}")
         try:
             table = await self.get_table()
             response = await table.query(
@@ -221,11 +243,11 @@ class DynamoDBManager:
 
             # Fetch the required keys and values
             result = [{k: sm.get(k, None) for k in specific_keys} for sm in sorted_messages]
-
+            info(f"Retrieved {len(result)} messages from session {session_id}")
             return result
 
         except ClientError as e:
-            print(f"Error getting messages: {e}")
+            error(f"Error getting messages for session {session_id}: {e}")
             return []
 
     async def check_daily_message_limit(self, user_id: str, limit: int = 20) -> Dict:
@@ -239,6 +261,7 @@ class DynamoDBManager:
         Returns:
             Dict containing limit status, message count, and notification flags.
         """
+        info(f"Checking daily message limit for user {user_id}")
         try:
             table = await self.get_table()
 
@@ -281,7 +304,7 @@ class DynamoDBManager:
                             today_message_count += 1
 
             remaining = max(0, limit - today_message_count)
-            logging.info("Remaining messages: %s", remaining)
+            info(f"User {user_id} has used {today_message_count}/{limit} messages today. Remaining: {remaining}")
 
             return {
                 'success': True,
@@ -294,7 +317,7 @@ class DynamoDBManager:
             }
 
         except ClientError as e:
-            print(f"Error checking message limit: {e}")
+            error(f"Error checking message limit for user {user_id}: {e}")
             return {
                 'success': False,
                 'error': str(e),
@@ -320,14 +343,17 @@ class DynamoDBManager:
 
     async def create_message(self, user_id: str, session_id: str, query: str, response: str, metrics: Dict) -> Dict:
         """Create a new message in a session if daily limit not exceeded."""
+        info(f"Creating message in session {session_id} for user {user_id}")
         # First check if user has reached their daily limit
         # reset = await self.reset_daily_message_count(user_id)
         limit_check = await self.check_daily_message_limit(user_id)
 
         if not limit_check['success']:
+            warning(f"Failed to check message limit for user {user_id}")
             return {'success': False, 'error': limit_check.get('error', 'Error checking message limit')}
 
         if limit_check['limit_reached']:
+            warning(f"Daily message limit reached for user {user_id}")
             return {
                 'success': False,
                 'error': 'Daily message limit reached',
@@ -369,23 +395,27 @@ class DynamoDBManager:
 
             # Check limits after creating the message to get updated counts
             updated_limit = await self.check_daily_message_limit(user_id)
+            info(f"Message created successfully. User has {updated_limit.get('remaining')} messages remaining today")
             return {'success': True, 'limit_info': updated_limit}
 
         except ClientError as e:
-            print(f"Error creating message: {e}")
+            error(f"Error creating message in session {session_id}: {e}")
             return {'success': False, 'error': str(e)}
 
     async def check_for_limit(self, user_id: str, session_id: str, query: str) -> Dict:
         """Create a new message in a session if daily limit not exceeded."""
+        info(f"Checking limits for user {user_id} in session {session_id}")
         # First check if user has reached their daily limit
         # reset = await self.reset_daily_message_count(user_id)
         limit_check = await self.check_daily_message_limit(user_id)
 
         if not limit_check['success']:
+            warning(f"Failed to check message limit for user {user_id}")
             return {'success': False, 'error': limit_check.get('error', 'Error checking message limit'),
                     'notification': limit_check.get('notification_message', '')}
 
         if limit_check['limit_reached']:
+            warning(f"Daily message limit reached for user {user_id}")
             return {
                 'success': False,
                 'error': 'Daily message limit reached',
@@ -393,14 +423,12 @@ class DynamoDBManager:
             }
 
         # If limit not reached, proceed with creating the message
-
         message_id = str(uuid.uuid4())
         item = {
             'PK': f'USER#{user_id}#SESSION#{session_id}',
             'SK': f'MESSAGE#{message_id}',
             'query': query,
             'updated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
         }
 
         try:
@@ -421,15 +449,20 @@ class DynamoDBManager:
 
             # Check limits after creating the message to get updated counts
             updated_limit = await self.check_daily_message_limit(user_id)
+            info(f"Limit check passed. User has {updated_limit.get('remaining')} messages remaining today")
             return {'success': True, 'limit_info': updated_limit}
 
         except ClientError as e:
-            print(f"Error creating message: {e}")
+            error(f"Error during limit check for user {user_id}: {e}")
             return {'success': False, 'error': str(e)}
 
     async def get_remaining_daily_messages(self, user_id: str) -> int:
+        """Get number of remaining messages for a user."""
+        info(f"Getting remaining daily messages for user {user_id}")
         limit_info = await self.check_daily_message_limit(user_id)
-        return limit_info.get("remaining", 0)
+        remaining = limit_info.get("remaining", 0)
+        info(f"User {user_id} has {remaining} messages remaining today")
+        return remaining
 
     async def reset_daily_message_count(self, user_id: str) -> Dict:
         """
@@ -442,6 +475,7 @@ class DynamoDBManager:
         Returns:
             Dict containing success status and count of messages reset.
         """
+        info(f"Resetting daily message count for user {user_id}")
         try:
             table = await self.get_table()
 
@@ -498,6 +532,7 @@ class DynamoDBManager:
                     )
                     reset_count += 1
 
+            info(f"Successfully reset {reset_count} messages for user {user_id}")
             return {
                 'success': True,
                 'reset_count': reset_count,
@@ -505,7 +540,7 @@ class DynamoDBManager:
             }
 
         except ClientError as e:
-            print(f"Error resetting message count: {e}")
+            error(f"Error resetting message count for user {user_id}: {e}")
             return {
                 'success': False,
                 'error': str(e)

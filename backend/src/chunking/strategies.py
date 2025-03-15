@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Set
 import logging
+from config.logging_config import info, warning, debug, error
 
 @dataclass
 class ChunkInfo:
@@ -21,6 +22,7 @@ class BaseChunkingStrategy(ABC):
     
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
+        info(f"Initializing {self.__class__.__name__}")
         
     @abstractmethod
     def chunk(self, code: str, file_path: str) -> List[ChunkInfo]:
@@ -37,6 +39,7 @@ class ApiChunkingStrategy(BaseChunkingStrategy):
     """Strategy for API code chunks"""
     
     def chunk(self, code: str, file_path: str) -> List[ChunkInfo]:
+        info(f"Chunking API code in {file_path}")
         chunks = []
         current_lines = []
         in_api_block = False
@@ -95,12 +98,14 @@ class ApiChunkingStrategy(BaseChunkingStrategy):
                 end_line=len(code.splitlines())
             ))
             
+        info(f"Created {len(chunks)} API chunks for {file_path}")
         return chunks
 
 class LogicalChunkingStrategy(BaseChunkingStrategy):
     """Strategy for logical code blocks (functions, classes)"""
     
     def chunk(self, code: str, file_path: str) -> List[ChunkInfo]:
+        info(f"Chunking logical code blocks in {file_path}")
         chunks = []
         current_lines = []
         start_line = 1
@@ -112,11 +117,12 @@ class LogicalChunkingStrategy(BaseChunkingStrategy):
             if stripped.startswith(('def ', 'class ', 'async def ')):
                 if current_lines:  # Save previous chunk
                     content = '\n'.join(current_lines)
+                    chunk_type = self._determine_type(current_lines[0])
                     chunks.append(ChunkInfo(
                         content=content,
                         language='python',
                         chunk_id=self._generate_chunk_id(content, file_path),
-                        type=self._determine_type(current_lines[0]),
+                        type=chunk_type,
                         start_line=start_line,
                         end_line=i-1
                     ))
@@ -129,15 +135,17 @@ class LogicalChunkingStrategy(BaseChunkingStrategy):
         # Handle remaining lines
         if current_lines:
             content = '\n'.join(current_lines)
+            chunk_type = self._determine_type(current_lines[0])
             chunks.append(ChunkInfo(
                 content=content,
                 language='python',
                 chunk_id=self._generate_chunk_id(content, file_path),
-                type=self._determine_type(current_lines[0]),
+                type=chunk_type,
                 start_line=start_line,
                 end_line=len(code.splitlines())
             ))
         
+        info(f"Created {len(chunks)} logical chunks for {file_path}")
         return chunks
     
     def _determine_type(self, first_line: str) -> str:
@@ -152,6 +160,7 @@ class ImportChunkingStrategy(BaseChunkingStrategy):
     """Strategy for import statements"""
     
     def chunk(self, code: str, file_path: str) -> List[ChunkInfo]:
+        info(f"Chunking import statements in {file_path}")
         imports = []
         current_imports = []
         other_lines = []
@@ -215,4 +224,5 @@ class ImportChunkingStrategy(BaseChunkingStrategy):
                 imports=set(imp.strip() for imp in current_imports)
             ))
         
+        info(f"Created {len(imports)} import chunks for {file_path}")
         return imports

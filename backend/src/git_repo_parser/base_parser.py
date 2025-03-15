@@ -1,7 +1,8 @@
 import os
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
-import logging
+# Replace standard logging with our custom logging
+from config.logging_config import info, error, warning, debug
 import tree_sitter
 
 from .base_types import (
@@ -28,7 +29,7 @@ class CodeParser:
         '.ts': ('typescript', TypeScriptParser),
         '.tsx': ('typescript', TypeScriptParser)
         }
-        self.logger = logging.getLogger(__name__)
+        # Remove the logger initialization
         self.base_path = Path(__file__).parent.parent.parent / "tree_sitter_libs"
         self.parsers = self._initialize_parsers()
         self.chunk_manager = ChunkManager(self.parsers) 
@@ -49,11 +50,13 @@ class CodeParser:
                 else:
                     vendor_path = str(self.base_path / f"tree-sitter-{lang}")
                 if not Path(vendor_path).exists():
-                    self.logger.error(f"Vendor path not found: {vendor_path}")
+                    # Replace self.logger.error with direct error function
+                    error(f"Vendor path not found: {vendor_path}")
                     continue
                 parsers[ext] = parser_class(build_path, vendor_path)
             except Exception as e:
-                self.logger.error(f"Failed to initialize {lang} parser: {e}")
+                # Replace self.logger.error with direct error function
+                error(f"Failed to initialize {lang} parser: {e}")
         
         return parsers
 
@@ -85,7 +88,8 @@ class CodeParser:
             }
             
         except Exception as e:
-            self.logger.error(f"Error parsing file {file_path}: {e}")
+            # Replace self.logger.error with direct error function
+            error(f"Error parsing file {file_path}: {e}")
             return {}
     
     def parse_directory(self, directory_path: str) -> Dict[str, Any]:
@@ -131,7 +135,8 @@ class CodeParser:
             return results
                         
         except Exception as e:
-            self.logger.error(f"Error parsing directory {directory_path}: {e}")
+            # Replace self.logger.error with direct error function
+            error(f"Error parsing directory {directory_path}: {e}")
             return results
         
     def process_file_as_text(self, file_path: str) -> Dict[str, Any]:

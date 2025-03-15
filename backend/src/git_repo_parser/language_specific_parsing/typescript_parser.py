@@ -1,5 +1,7 @@
 from typing import Any, Dict, List
 from ..base_types import BaseLanguageParser, CodeEntity, CodeLocation
+# Import direct logging functions
+from config.logging_config import info, error, warning, debug
 
 class TypeScriptParser(BaseLanguageParser):
     def get_language_name(self) -> str:
@@ -101,7 +103,8 @@ class TypeScriptParser(BaseLanguageParser):
                 entities = self.extract_entities(tree.root_node)
             return entities
         except Exception as e:
-            self.logger.error(f"Error parsing TypeScript file {file_path}: {e}")
+            # Replace self.logger.error with direct error function
+            error(f"Error parsing TypeScript file {file_path}: {e}")
             return []
 
     def extract_entities(self, node: Any) -> List[CodeEntity]:
@@ -166,7 +169,8 @@ class TypeScriptParser(BaseLanguageParser):
             return ""
             
         except Exception as e:
-            self.logger.warning(f"Error extracting name from {node.type}: {e}")
+            # Replace self.logger.warning with direct warning function
+            warning(f"Error extracting name from {node.type}: {e}")
             return ""
 
     def extract_metadata(self, node: Any) -> Dict[str, Any]:
@@ -239,7 +243,8 @@ class TypeScriptParser(BaseLanguageParser):
             return metadata
             
         except Exception as e:
-            self.logger.warning(f"Error extracting metadata: {e}")
+            # Replace self.logger.warning with direct warning function
+            warning(f"Error extracting metadata: {e}")
             return metadata
 
     def get_child_by_field_name(self, node: Any, field_name: str) -> Any:

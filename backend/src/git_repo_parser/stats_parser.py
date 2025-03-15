@@ -3,7 +3,8 @@ import os
 from collections import defaultdict
 from typing import Dict, Set, Tuple
 from transformers import pipeline
-import logging
+# Replace standard logging with our custom logging
+from config.logging_config import info, error, warning, debug
 
 
 class StatsParser:
@@ -15,7 +16,7 @@ class StatsParser:
                                     '.kt': 'Kotlin','.txt':'Text File'}
         self.repo_path = Path(repo_path)
         self.excluded_dirs = {'.git', 'node_modules', 'venv', '__pycache__', 'build', 'dist'}
-        self.logger = logging.getLogger(__name__)
+        # Remove the logger initialization
         self.code_files = self._scan_repository()
         
     def _scan_repository(self) -> Set[Path]:

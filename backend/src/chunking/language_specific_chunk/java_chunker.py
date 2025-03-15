@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional, Set
 from tree_sitter import Node
 import logging
+from config.logging_config import info, warning, debug, error
 
 from git_repo_parser.base_types import CodeEntity
 from ..strategies import (
@@ -13,7 +14,12 @@ class JavaImportStrategy(BaseChunkingStrategy):
     
     MAX_IMPORTS_PER_CHUNK = 15  # Maximum imports per chunk
     
+    def __init__(self):
+        super().__init__()
+        info("JavaImportStrategy initialized")
+    
     def chunk(self, code: str, file_path: str) -> List[ChunkInfo]:
+        info(f"Chunking Java imports for file: {file_path}")
         imports = []
         current_imports = []
         package_line = None
@@ -95,6 +101,7 @@ class JavaImportStrategy(BaseChunkingStrategy):
                 }
             ))
         
+        info(f"Created {len(imports)} import chunks")
         return imports
 
 class JavaChunker:
@@ -140,64 +147,83 @@ class JavaChunker:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.import_strategy = JavaImportStrategy()
         self.file_path = None
+        info("JavaChunker initialized")
     
     def create_chunks(self, code: str, file_path: str) -> List[ChunkInfo]:
         """Create chunks from Java code"""
         try:
+            info(f"Creating chunks for Java file: {file_path}")
             self.file_path = file_path
             chunks = []
             
             tree = self.parser.parse(bytes(code, 'utf-8'))
             if not tree:
+                error(f"Failed to parse Java code for file: {file_path}")
                 raise ValueError("Failed to parse Java code")
             
             # First: Extract imports and package
+            info("Extracting imports and package")
             import_chunks = self.import_strategy.chunk(code, file_path)
             chunks.extend(import_chunks)
             
             # Second: Process rest of the code with tree-sitter
+            info("Processing Java code with tree-sitter")
             self._process_node(tree.root_node, code, file_path, chunks)
             
             # Enrich chunks with dependencies and relationships
+            info("Enriching chunks with dependencies and relationships")
             self._enrich_chunks(chunks, tree.root_node, code)
             
+            info(f"Created total of {len(chunks)} chunks for {file_path}")
             return chunks
             
         except Exception as e:
-            self.logger.error(f"Error creating Java chunks: {e}")
+            error(f"Error creating Java chunks: {e}")
             return []
     
     def create_chunks_from_entities(self, entities: List[CodeEntity], file_path: str) -> List[ChunkInfo]:
         """Create optimized chunks from Java entities"""
         try:
+            info(f"Creating chunks from {len(entities)} Java entities for file: {file_path}")
             self.file_path = file_path
             chunks = []
             
             # Group and process entities
+            info("Grouping and sorting entities")
             sorted_entities = sorted(entities, key=lambda e: e.location.start_line)
             entity_groups = self._group_entities(sorted_entities)
             
             # Process each group
+            info("Processing entity groups")
             for group in entity_groups:
                 new_chunks = self._process_entity_group(group)
                 chunks.extend(new_chunks)
             
             # Add imports (read file to get imports)
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            import_chunks = self.import_strategy.chunk(content, file_path)
-            chunks.extend(import_chunks)
+            info("Adding imports from file")
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                import_chunks = self.import_strategy.chunk(content, file_path)
+                chunks.extend(import_chunks)
+            except Exception as e:
+                warning(f"Could not read file for imports: {e}")
             
             # Add dependencies
-            tree = self.parser.parse(bytes(content, 'utf-8'))
-            if tree:
-                self._enrich_chunks(chunks, tree.root_node, content)
+            info("Adding dependencies")
+            try:
+                tree = self.parser.parse(bytes(content, 'utf-8'))
+                if tree:
+                    self._enrich_chunks(chunks, tree.root_node, content)
+            except Exception as e:
+                warning(f"Could not add dependencies: {e}")
                 
+            info(f"Created total of {len(chunks)} chunks from entities")
             return chunks
             
         except Exception as e:
-            self.logger.error(f"Error creating chunks from entities: {e}")
+            error(f"Error creating chunks from entities: {e}")
             return chunks
     
     def _process_node(self, node: Node, code: str, file_path: str, chunks: List[ChunkInfo]) -> None:
@@ -211,13 +237,14 @@ class JavaChunker:
                 # Handle large entities
                 content_lines = len(chunk_content.splitlines())
                 if content_lines > self.LARGE_ENTITY_THRESHOLD:
+                    info(f"Splitting large {chunk_type} entity with {content_lines} lines")
                     chunks.extend(self._split_large_entity(
                         chunk_content, chunk_type,
                         node.start_point[0] + 1,
                         file_path, metadata
                     ))
                 else:
-                    chunk = ChunkInfo(
+                    chunks.append(ChunkInfo(
                         content=chunk_content,
                         language='java',
                         chunk_id=f"{file_path}:{chunk_type}_{node.start_point[0]+1}",
@@ -225,15 +252,14 @@ class JavaChunker:
                         start_line=node.start_point[0] + 1,
                         end_line=node.end_point[0] + 1,
                         metadata=metadata
-                    )
-                    chunks.append(chunk)
+                    ))
             
             # Process child nodes
             for child in node.children:
                 self._process_node(child, code, file_path, chunks)
                 
         except Exception as e:
-            self.logger.warning(f"Error processing node: {e}")
+            warning(f"Error processing node at line {node.start_point[0]+1}: {e}")
     
     def _process_entity_group(self, group: List[CodeEntity]) -> List[ChunkInfo]:
         """Process a group of entities, handling large entities appropriately"""
@@ -242,6 +268,7 @@ class JavaChunker:
         
         if total_lines > self.LARGE_ENTITY_THRESHOLD and len(group) == 1:
             # Single large entity - split it
+            info(f"Splitting single large entity of {total_lines} lines")
             chunks.extend(self._split_large_entity(
                 group[0].content,
                 group[0].type,
@@ -251,6 +278,7 @@ class JavaChunker:
             ))
         elif total_lines > self.LARGE_ENTITY_THRESHOLD:
             # Multiple entities forming large group - split at logical boundaries
+            info(f"Splitting large group of {len(group)} entities with {total_lines} lines")
             chunks.extend(self._split_large_group(group))
         else:
             # Normal sized group - create single chunk
@@ -263,6 +291,7 @@ class JavaChunker:
     def _split_large_entity(self, content: str, entity_type: str, start_line: int, 
                            file_path: str, metadata: Dict) -> List[ChunkInfo]:
         """Split a large entity into multiple smaller chunks"""
+        info(f"Splitting large {entity_type} entity starting at line {start_line}")
         chunks = []
         lines = content.splitlines()
         current_chunk_lines = []
@@ -300,10 +329,12 @@ class JavaChunker:
                 current_start += len(current_chunk_lines)
                 chunk_number += 1
         
+        info(f"Split large entity into {len(chunks)} chunks")
         return chunks
 
     def _split_large_group(self, group: List[CodeEntity]) -> List[ChunkInfo]:
         """Split a large group of entities into logical chunks"""
+        info(f"Splitting large group of {len(group)} entities")
         chunks = []
         current_group = []
         current_lines = 0
@@ -345,10 +376,12 @@ class JavaChunker:
             if chunk:
                 chunks.append(chunk)
         
+        info(f"Split large group into {len(chunks)} chunks")
         return chunks
     
     def _group_entities(self, entities: List[CodeEntity]) -> List[List[CodeEntity]]:
         """Group related entities based on type and proximity"""
+        info(f"Grouping {len(entities)} entities by relation")
         if not entities:
             return []
             
@@ -392,7 +425,7 @@ class JavaChunker:
             return False
             
         except Exception as e:
-            self.logger.warning(f"Error checking entity merge: {e}")
+            warning(f"Error checking entity merge: {e}")
             return False
     
     def _get_group_size(self, entities: List[CodeEntity]) -> int:
@@ -445,7 +478,7 @@ class JavaChunker:
             )
             
         except Exception as e:
-            self.logger.warning(f"Error creating chunk from group: {e}")
+            warning(f"Error creating chunk from group: {e}")
             return None
 
     def _determine_primary_type(self, entities: List[CodeEntity]) -> str:
@@ -585,7 +618,7 @@ class JavaChunker:
                 metadata['is_interface_method'] = True
                 
         except Exception as e:
-            self.logger.warning(f"Error extracting metadata: {e}")
+            warning(f"Error extracting metadata: {e}")
             
         return metadata
     
@@ -608,12 +641,13 @@ class JavaChunker:
             return deps
             
         except Exception as e:
-            self.logger.warning(f"Error extracting dependencies: {e}")
+            warning(f"Error extracting dependencies: {e}")
             return deps
     
     def _enrich_chunks(self, chunks: List[ChunkInfo], root_node: Node, code: str) -> None:
         """Add dependencies and relationships to chunks"""
         try:
+            info("Enriching chunks with dependencies and relationships")
             # Build name to chunk mapping
             name_to_chunk = {}
             for chunk in chunks:
@@ -649,7 +683,7 @@ class JavaChunker:
                         ]
                     
         except Exception as e:
-            self.logger.warning(f"Error enriching chunks: {e}")
+            warning(f"Error enriching chunks: {e}")
     
     def get_chunk_summary(self, chunk: ChunkInfo) -> Dict:
         """Get a summary of a chunk's contents"""

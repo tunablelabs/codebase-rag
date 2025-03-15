@@ -2,7 +2,8 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 import tree_sitter
-import logging
+# Replace standard logging with our custom logging
+from config.logging_config import info, error, warning, debug
 from pathlib import Path
 
 @dataclass
@@ -36,7 +37,7 @@ class CodeEntity:
 
 class BaseLanguageParser(ABC):
     def __init__(self, build_path: str, vendor_path: str):
-        self.logger = logging.getLogger(self.__class__.__name__)
+        # Remove the logger initialization
         self.parser = self._initialize_parser(build_path, vendor_path)
         
     def _initialize_parser(self, build_path: str, vendor_path: str) -> tree_sitter.Parser:
@@ -54,7 +55,8 @@ class BaseLanguageParser(ABC):
             return parser
             
         except Exception as e:
-            self.logger.error(f"Failed to initialize parser: {e}")
+            # Replace self.logger.error with direct error function
+            error(f"Failed to initialize parser: {e}")
             raise
     
     @abstractmethod

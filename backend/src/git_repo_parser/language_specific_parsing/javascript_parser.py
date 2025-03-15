@@ -1,5 +1,7 @@
 from typing import Any, Dict, List
 from ..base_types import BaseLanguageParser, CodeEntity, CodeLocation, StringLiteral
+# Import direct logging functions
+from config.logging_config import info, error, warning, debug
 
 class JavaScriptParser(BaseLanguageParser):
     def get_language_name(self) -> str:
@@ -18,7 +20,8 @@ class JavaScriptParser(BaseLanguageParser):
             entities = self.extract_entities(tree.root_node)
             return entities
         except Exception as e:
-            self.logger.error(f"Error parsing JavaScript file {file_path}: {e}")
+            # Replace self.logger.error with direct error function
+            error(f"Error parsing JavaScript file {file_path}: {e}")
             return []
 
     def extract_entities(self, node: Any) -> List[CodeEntity]:
@@ -220,7 +223,8 @@ class JavaScriptParser(BaseLanguageParser):
             return metadata
                 
         except Exception as e:
-            self.logger.warning(f"Error extracting metadata: {e}")
+            # Replace self.logger.warning with direct warning function
+            warning(f"Error extracting metadata: {e}")
             return metadata
 
     def get_child_by_field_name(self, node: Any, field_name: str) -> Any:

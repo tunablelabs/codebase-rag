@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional, Set
 from tree_sitter import Node
 import logging
+from config.logging_config import info, warning, debug, error
 from ..strategies import BaseChunkingStrategy, ChunkInfo
 from git_repo_parser.base_types import CodeEntity
 
@@ -9,7 +10,12 @@ class TSImportStrategy(BaseChunkingStrategy):
     
     MAX_IMPORTS_PER_CHUNK = 10
     
+    def __init__(self):
+        super().__init__()
+        info("TSImportStrategy initialized")
+    
     def chunk(self, code: str, file_path: str) -> List[ChunkInfo]:
+        info(f"Chunking TypeScript imports for file: {file_path}")
         chunks = []
         current_imports = []
         start_line = 1
@@ -52,6 +58,7 @@ class TSImportStrategy(BaseChunkingStrategy):
                 current_imports, file_path, start_line, len(code.splitlines())
             ))
         
+        info(f"Created {len(chunks)} TypeScript import chunks")
         return chunks
     
     def _create_import_chunk(self, imports: List[str], file_path: str, 
@@ -109,41 +116,60 @@ class TypeScriptChunker:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.import_strategy = TSImportStrategy()
         self.file_path = None
+        info("TypeScriptChunker initialized")
 
     def create_chunks_from_entities(self, entities: List[CodeEntity], file_path: str) -> List[ChunkInfo]:
         """Create optimized chunks from TypeScript entities"""
         try:
+            info(f"Creating chunks from {len(entities)} TypeScript entities for file: {file_path}")
             self.file_path = file_path
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            
+            # Read file content
+            info(f"Reading TypeScript file: {file_path}")
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            except Exception as e:
+                error(f"Error reading TypeScript file {file_path}: {e}")
+                raise
             
             chunks = []
             
             # Handle imports first
+            info("Processing TypeScript imports")
             import_chunks = self.import_strategy.chunk(content, file_path)
             chunks.extend(import_chunks)
             
             # Group and process entities
+            info("Grouping and sorting TypeScript entities")
             sorted_entities = sorted(entities, key=lambda e: e.location.start_line)
             entity_groups = self._group_entities(sorted_entities)
+            info(f"Created {len(entity_groups)} entity groups")
             
             # Process each group
+            info("Processing entity groups")
             for group in entity_groups:
                 new_chunks = self._process_entity_group(group)
                 chunks.extend(new_chunks)
             
             # Add dependencies
-            tree = self.parser.parse(bytes(content, 'utf-8'))
-            if tree:
-                self._enrich_chunks(chunks, tree.root_node, content)
+            info("Adding dependencies between chunks")
+            try:
+                tree = self.parser.parse(bytes(content, 'utf-8'))
+                if tree:
+                    self._enrich_chunks(chunks, tree.root_node, content)
+            except Exception as e:
+                warning(f"Could not add dependencies: {e}")
             
             # Final size check and merging of small chunks
+            info("Optimizing chunk sizes")
             chunks = self._optimize_chunk_sizes(chunks)
             
+            info(f"Created total of {len(chunks)} chunks for {file_path}")
             return chunks
             
         except Exception as e:
-            self.logger.warning(f"Error creating chunks from entities: {e}")
+            error(f"Error creating TypeScript chunks: {e}")
             return []
 
     def _process_entity_group(self, group: List[CodeEntity]) -> List[ChunkInfo]:
@@ -155,9 +181,11 @@ class TypeScriptChunker:
         
         if total_lines > self.LARGE_ENTITY_THRESHOLD and len(group) == 1:
             # Single large entity - split it
+            info(f"Splitting large entity of {total_lines} lines")
             chunks.extend(self._split_large_entity(group[0]))
         elif total_lines > self.LARGE_ENTITY_THRESHOLD:
             # Multiple entities forming large group - split at logical boundaries
+            info(f"Splitting large group of {len(group)} entities with {total_lines} lines")
             chunks.extend(self._split_large_group(group))
         else:
             # Normal sized group - process as before
@@ -169,6 +197,7 @@ class TypeScriptChunker:
 
     def _split_large_entity(self, entity: CodeEntity) -> List[ChunkInfo]:
         """Split a large entity into multiple smaller chunks"""
+        info(f"Splitting large {entity.type} entity: {entity.name}")
         chunks = []
         lines = entity.content.splitlines()
         current_chunk_lines = []
@@ -212,10 +241,12 @@ class TypeScriptChunker:
                 current_start_line += len(current_chunk_lines)
                 chunk_number += 1
         
+        info(f"Split large entity into {len(chunks)} chunks")
         return chunks
 
     def _split_large_group(self, group: List[CodeEntity]) -> List[ChunkInfo]:
         """Split a large group of entities into logical chunks"""
+        info(f"Splitting large group of {len(group)} entities")
         chunks = []
         current_group = []
         current_lines = 0
@@ -251,10 +282,12 @@ class TypeScriptChunker:
             if chunk:
                 chunks.append(chunk)
         
+        info(f"Split large group into {len(chunks)} chunks")
         return chunks
 
     def _group_entities(self, entities: List[CodeEntity]) -> List[List[CodeEntity]]:
         """Group related entities based on type and proximity"""
+        info(f"Grouping {len(entities)} entities by relation")
         if not entities:
             return []
             
@@ -301,7 +334,7 @@ class TypeScriptChunker:
             return False
             
         except Exception as e:
-            self.logger.warning(f"Error checking entity merge: {e}")
+            warning(f"Error checking entity merge: {e}")
             return False
 
     def _get_group_size(self, entities: List[CodeEntity]) -> int:
@@ -344,7 +377,7 @@ class TypeScriptChunker:
             )
             
         except Exception as e:
-            self.logger.warning(f"Error creating chunk from group: {e}")
+            warning(f"Error creating chunk from group: {e}")
             return None
 
     def _determine_group_type(self, entities: List[CodeEntity]) -> str:
@@ -385,6 +418,7 @@ class TypeScriptChunker:
 
     def _optimize_chunk_sizes(self, chunks: List[ChunkInfo]) -> List[ChunkInfo]:
         """Optimize chunk sizes by merging small chunks"""
+        info("Optimizing chunk sizes by merging small chunks")
         optimized = []
         current = None
         
@@ -415,6 +449,7 @@ class TypeScriptChunker:
         if current:
             optimized.append(current)
         
+        info(f"Optimized chunks: {len(chunks)} -> {len(optimized)}")
         return optimized
 
     def _merge_chunks(self, chunk1: ChunkInfo, chunk2: ChunkInfo) -> ChunkInfo:
@@ -463,13 +498,14 @@ class TypeScriptChunker:
             return deps
             
         except Exception as e:
-            self.logger.warning(f"Error extracting dependencies: {e}")
+            warning(f"Error extracting dependencies: {e}")
             return deps
 
     def _enrich_chunks(self, chunks: List[ChunkInfo], root_node: Node, 
                       code: str) -> None:
         """Add dependencies and relationships to chunks"""
         try:
+            info("Enriching chunks with dependencies")
             # Build name to chunk mapping
             name_to_chunk = {}
             for chunk in chunks:
@@ -482,6 +518,8 @@ class TypeScriptChunker:
                 if chunk.type != 'import':
                     deps = self._extract_dependencies(chunk.content, name_to_chunk)
                     chunk.dependencies.update(deps)
+            
+            info("Chunks enriched successfully")
                     
         except Exception as e:
-            self.logger.warning(f"Error enriching chunks: {e}")
+            warning(f"Error enriching chunks: {e}")

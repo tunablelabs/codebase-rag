@@ -1,6 +1,8 @@
 from typing import Any, Dict, List, Tuple
 from ..base_types import BaseLanguageParser, CodeEntity, CodeLocation, StringLiteral
 from tree_sitter import Node
+# Import direct logging functions
+from config.logging_config import info, error, warning, debug
 
 
 class PythonParser(BaseLanguageParser):
@@ -20,7 +22,8 @@ class PythonParser(BaseLanguageParser):
             entities = self.extract_entities(tree.root_node)
             return entities
         except Exception as e:
-            self.logger.error(f"Error parsing Python file {file_path}: {e}")
+            # Replace self.logger.error with direct error function
+            error(f"Error parsing Python file {file_path}: {e}")
             return []
 
     def extract_entities(self, node: Any) -> List[CodeEntity]:
@@ -277,7 +280,8 @@ class PythonParser(BaseLanguageParser):
             return metadata
             
         except Exception as e:
-            self.logger.warning(f"Error extracting metadata: {e}")
+            # Replace self.logger.warning with direct warning function
+            warning(f"Error extracting metadata: {e}")
             return metadata
 
     def get_child_by_field_name(self, node: Any, field_name: str) -> Any:
