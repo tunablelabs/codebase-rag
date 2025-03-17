@@ -6,7 +6,7 @@ from botocore.exceptions import ClientError
 from typing import Dict, Any, Optional
 import uuid
 from datetime import datetime
-from config.config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION
+from config.config import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, USE_LOCAL_DYNAMODB, DYNAMODB_LOCAL_ENDPOINT
 from config.logging_config import info, warning, debug, error
 
 
@@ -22,35 +22,38 @@ class DynamoDBManager:
     def __init__(self):
         """
         Initialize connection to AWS DynamoDB.
-        Uses AWS credentials from environment variables.
+        Connection type (local or production) is determined by environment variables.
         """
         info("Initializing DynamoDBManager")
-        # Create session with credentials
-        self.session = aioboto3.Session(
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-            region_name=AWS_DEFAULT_REGION
-        )
+        # Check if we should use local or production mode
+        use_local = USE_LOCAL_DYNAMODB.lower() == 'true'
+        
+        if use_local:
+            info("Using local DynamoDB instance")
+            self.session = aioboto3.Session()
+            self.dynamodb_config = {
+                'endpoint_url': DYNAMODB_LOCAL_ENDPOINT,
+                'region_name': 'us-east-1',
+                'aws_access_key_id': 'local',
+                'aws_secret_access_key': 'local'
+            }
+        else:
+            info("Using production AWS DynamoDB")
+            self.session = aioboto3.Session(
+                aws_access_key_id=AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+                region_name=AWS_DEFAULT_REGION
+            )
+            self.dynamodb_config = {} 
+            
         info("DynamoDB session created")
-        # Local Setup
-        """
-        Initialize connection to local DynamoDB instance.
-        Uses local endpoint and dummy credentials for development.
-        """
-        # self.session = aioboto3.Session()
-        # self.dynamodb_config = {
-        #     'endpoint_url': 'http://localhost:8000',  # Local DynamoDB endpoint
-        #     'region_name': 'local',                   # Local region for development
-        #     'aws_access_key_id': 'local',            # Dummy credentials
-        #     'aws_secret_access_key': 'local'         # Dummy credentials
-        # }
 
     async def get_table(self):
         """Helper method to get table resource, creating it only once"""
         if DynamoDBManager._resource is None:
             # Create the resource only once
             info("Creating new DynamoDB resource connection")
-            DynamoDBManager._resource = await self.session.resource('dynamodb').__aenter__()
+            DynamoDBManager._resource = await self.session.resource('dynamodb', **self.dynamodb_config).__aenter__()
             DynamoDBManager._table = await DynamoDBManager._resource.Table('codebase')
         return DynamoDBManager._table
 
