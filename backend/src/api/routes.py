@@ -191,6 +191,12 @@ async def analyze_repository(user_session: UserSessionID):
     start_log_request()
     try:
         info(f"Analyzing repository stats for user {user_session.user_id}, session {user_session.session_id}")
+        existing_stats = await dynamo_db_service.get_session_stats(user_session.user_id, user_session.session_id)
+        if existing_stats:
+            info(f"Returning existing stats from DB for session {user_session.session_id}")
+            return existing_stats
+        
+        info(f"Generating new stats for session {user_session.session_id}")
         project_path = get_project_path(user_session.user_id, user_session.session_id)
         if not os.path.exists(project_path):
             warning(f"Project path not available: {project_path}")
@@ -199,6 +205,7 @@ async def analyze_repository(user_session: UserSessionID):
         info("Parsing repository stats")
         parser = StatsParser(project_path)
         stats = await parser.get_stats()
+        await dynamo_db_service.update_session_stats(user_session.user_id, user_session.session_id, stats)
         info("Stats retrieved successfully")
         return stats
     except Exception as e:
