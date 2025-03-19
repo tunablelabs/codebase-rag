@@ -548,3 +548,70 @@ class DynamoDBManager:
                 'success': False,
                 'error': str(e)
             }
+            
+    async def get_session_stats(self, user_id: str, session_id: str) -> Dict:
+        """
+        Get repository statistics for a session if they exist in DB.
+        
+        Args:
+            user_id: The ID of the user.
+            session_id: The ID of the session.
+            
+        Returns:
+            Dict with stats or None if not found.
+        """
+        info(f"Checking for existing stats in DB for session {session_id}, user {user_id}")
+        try:
+            table = await self.get_table()
+            response = await table.get_item(
+                Key={
+                    'PK': f'USER#{user_id}',
+                    'SK': f'SESSION#{session_id}'
+                }
+            )
+            
+            session_item = response.get('Item', {})
+            
+            if 'repo_stats' in session_item:
+                info(f"Found existing stats for session {session_id}")
+                return session_item['repo_stats']
+            else:
+                info(f"No stats found in DB for session {session_id}")
+                return None
+                
+        except ClientError as e:
+            error(f"Error checking stats for session {session_id}: {e}")
+            return None
+        
+        
+    async def update_session_stats(self, user_id: str, session_id: str, stats: Dict) -> bool:
+        """
+        Update a session with repository statistics.
+        
+        Args:
+            user_id: The ID of the user.
+            session_id: The ID of the session.
+            stats: Dictionary containing repository statistics.
+            
+        Returns:
+            bool: True if the update was successful, False otherwise.
+        """
+        info(f"Updating stats in DB for session {session_id}, user {user_id}")
+        try:
+            table = await self.get_table()
+            await table.update_item(
+                Key={
+                    'PK': f'USER#{user_id}',
+                    'SK': f'SESSION#{session_id}'
+                },
+                UpdateExpression='SET repo_stats = :stats, updated_at = :timestamp',
+                ExpressionAttributeValues={
+                    ':stats': stats,
+                    ':timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            )
+            info(f"Updated stats in DB for session {session_id} successfully")
+            return True
+        except Exception as e:
+            error(f"Error updating stats for session {session_id}: {e}")
+            return False
