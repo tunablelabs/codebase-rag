@@ -214,6 +214,10 @@ codex/
 
 ## 🗺️ Roadmap
 
+- [ ] **UI changes / improvements**
+- [ ] **Add support to more LLMs (LiteLLM)**
+- [ ] **Improve existing retrieval pipeline**
+- [ ] **Setup benchmarks and eval scripts**
 - [ ] Multi-user collaboration
 - [ ] Visual code graph navigation
 - [ ] IDE extensions (VS Code, JetBrains)
